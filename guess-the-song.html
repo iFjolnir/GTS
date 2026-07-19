@@ -1,0 +1,1203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guess the Song</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='12' width='56' height='40' rx='6' fill='%23C23A2B'/%3E%3Crect x='12' y='20' width='40' height='14' rx='3' fill='%23F8F2E4'/%3E%3Ccircle cx='22' cy='42' r='5' fill='%23F8F2E4'/%3E%3Ccircle cx='42' cy='42' r='5' fill='%23F8F2E4'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800;900&family=IBM+Plex+Mono:wght@500;700&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cherry:#C23A2B; --gold:#D99A2B;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+}
+:root[data-theme="light"]{
+  --bg:#EDE3CF; --card:#F8F2E4; --card2:#EFE5CE; --ink:#2A211A; --muted:#7A6A55;
+  --line:#D9CCAF; --line2:#C4B694; --red:#C23A2B; --amber:#D99A2B;
+  --btn-shadow:0 3px 0 rgba(42,33,26,.22);
+}
+:root[data-theme="dark"]{
+  --bg:#12161F; --card:#1B2130; --card2:#242C3E; --ink:#EDEFF5; --muted:#94A0B8;
+  --line:#333D54; --line2:#41507A; --red:#FF5A47; --amber:#F2B33D;
+  --btn-shadow:0 3px 0 rgba(0,0,0,.55);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:'Archivo',system-ui,sans-serif; font-size:16px; line-height:1.45;
+  min-height:100dvh;
+}
+#app{
+  max-width:480px; margin:0 auto; min-height:100dvh;
+  padding:14px 16px calc(28px + env(safe-area-inset-bottom));
+  display:flex; flex-direction:column; gap:14px;
+}
+button{font-family:inherit; color:inherit; cursor:pointer}
+input,select{font-family:inherit; color:inherit; font-size:16px}
+
+/* ---------- tape stripe (label motif) ---------- */
+.stripes{height:10px; border-radius:99px; overflow:hidden; display:flex}
+.stripes i{flex:1}
+.stripes i:first-child{background:var(--red)}
+.stripes i:last-child{background:var(--amber)}
+.stripes.thin{height:6px}
+
+/* ---------- typography ---------- */
+.eyebrow{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:11px;
+  letter-spacing:.18em; text-transform:uppercase; color:var(--muted)}
+.brand{font-weight:900; font-size:30px; letter-spacing:-.5px; line-height:1.05; margin:2px 0 0}
+h2.screen-title{font-weight:900; font-size:22px; letter-spacing:-.3px; margin:0}
+.marker{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-weight:400}
+.mono{font-family:'IBM Plex Mono',monospace}
+
+/* ---------- header ---------- */
+.top{display:flex; align-items:center; gap:10px}
+.top .back{width:40px;height:40px;border-radius:10px;border:2px solid var(--line2);
+  background:var(--card); font-size:19px; font-weight:800; box-shadow:var(--btn-shadow); flex:none}
+.top .back:active{transform:translateY(2px); box-shadow:none}
+
+/* ---------- cards ---------- */
+.card{background:var(--card); border:2px solid var(--line2); border-radius:var(--r-lg);
+  padding:16px; box-shadow:var(--btn-shadow)}
+.card.flat{box-shadow:none}
+.card2{background:var(--card2)}
+
+/* ---------- buttons ---------- */
+.btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  border:2px solid var(--line2); border-radius:var(--r-md); background:var(--card);
+  font-weight:800; font-size:16px; padding:14px 16px; box-shadow:var(--btn-shadow);
+  transition:transform .05s, box-shadow .05s}
+.btn:active{transform:translateY(3px); box-shadow:none}
+.btn.primary{background:var(--red); border-color:transparent; color:#FFF7EC}
+.btn.big{font-size:19px; padding:18px}
+.btn.quiet{box-shadow:none; border-style:dashed; font-weight:600; color:var(--muted); background:transparent}
+.btn.danger{color:var(--red); border-color:var(--red)}
+.btn-row{display:flex; gap:10px}
+.btn-row .btn{flex:1}
+
+/* ---------- head-to-head ---------- */
+.h2h{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:6px; text-align:center}
+.h2h .p .emb{width:52px;height:52px;margin:0 auto 6px; display:flex;align-items:center;justify-content:center;
+  border-radius:50%; border:2px solid currentColor}
+.h2h .p .emb svg{width:30px;height:30px}
+.h2h .p .nm{font-weight:800; font-size:15px}
+.h2h .score{font-weight:900; font-size:52px; letter-spacing:-2px; line-height:1; display:flex; align-items:baseline; gap:8px}
+.h2h .score .colon{color:var(--muted); font-size:36px}
+.h2h-sub{text-align:center; color:var(--muted); font-size:13px; margin-top:8px}
+
+/* ---------- cassette ---------- */
+.cassette{display:block; margin:0 auto}
+.cassette .shell{fill:var(--card2); stroke:var(--line2); stroke-width:3}
+.cassette .lbl{fill:var(--card); stroke:var(--line2); stroke-width:2}
+.cassette .win{fill:var(--bg); stroke:var(--line2); stroke-width:2}
+.cassette .reel{fill:none; stroke:currentColor; stroke-width:5}
+.cassette .spokes{stroke:currentColor; stroke-width:5; stroke-linecap:round}
+.cassette .screw{fill:var(--line2)}
+.spin .reelgrp{animation:spin 2.6s linear infinite; transform-box:fill-box; transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- setup ---------- */
+.field{display:flex; flex-direction:column; gap:8px}
+.field > label{font-weight:800; font-size:14px}
+.hint{font-size:12.5px; color:var(--muted)}
+input.text{background:var(--card2); border:2px solid var(--line2); border-radius:var(--r-sm);
+  padding:11px 12px; width:100%}
+input.text:focus{outline:2px solid var(--red); outline-offset:1px}
+input.marker-in{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-size:19px}
+.chips{display:flex; flex-wrap:wrap; gap:8px}
+.chip{border:2px solid var(--line2); background:var(--card2); border-radius:99px;
+  padding:6px 12px; font-size:13.5px; font-weight:600}
+.chip.on{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+.pchip{display:flex; align-items:center; gap:8px; border:2px solid var(--line2); background:var(--card2);
+  border-radius:var(--r-md); padding:9px 13px; font-weight:800; font-size:15px}
+.pchip svg{width:20px;height:20px}
+.pchip.on{border-color:currentColor}
+.rule{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 2px}
+.rule + .rule{border-top:1.5px dashed var(--line)}
+.rule .rl{font-weight:700; font-size:15px}
+.rule .rs{font-size:12.5px; color:var(--muted); margin-top:1px}
+.sub-rule{padding:2px 2px 12px 14px; border-left:3px solid var(--line)}
+.toggle{position:relative; width:52px; height:30px; flex:none; border-radius:99px;
+  border:2px solid var(--line2); background:var(--card2); transition:background .15s}
+.toggle i{position:absolute; top:2px; left:2px; width:22px; height:22px; border-radius:50%;
+  background:var(--muted); transition:transform .15s, background .15s}
+.toggle.on{background:var(--red); border-color:transparent}
+.toggle.on i{transform:translateX(22px); background:#FFF7EC}
+.seg{display:flex; border:2px solid var(--line2); border-radius:var(--r-sm); overflow:hidden}
+.seg button{flex:1; border:0; background:var(--card2); padding:9px 6px; font-weight:700; font-size:13.5px}
+.seg button.on{background:var(--ink); color:var(--bg)}
+input.num{width:74px; text-align:center; background:var(--card2); border:2px solid var(--line2);
+  border-radius:var(--r-sm); padding:9px 6px; font-weight:700}
+
+/* ---------- game screen ---------- */
+.turncard{border-radius:var(--r-lg); border:2.5px solid currentColor; padding:14px 16px 12px;
+  background:var(--card); box-shadow:var(--btn-shadow); text-align:center}
+.turncard .who{font-weight:900; font-size:32px; letter-spacing:-.5px; line-height:1.1; color:var(--ink);
+  display:flex; align-items:center; justify-content:center; gap:10px}
+.turncard .who svg{width:28px; height:28px}
+.meta{display:flex; justify-content:space-between; align-items:center; padding:0 4px}
+.meta .sc{font-weight:800; font-size:14.5px}
+.meta .sc b{font-size:17px}
+.guess-grid{display:grid; gap:10px}
+.guess-grid.c2{grid-template-columns:1fr 1fr}
+.guess-grid.c3{grid-template-columns:1fr 1fr 1fr}
+.gbtn{border:2.5px solid var(--line2); border-radius:var(--r-lg); background:var(--card);
+  padding:20px 6px 16px; display:flex; flex-direction:column; align-items:center; gap:6px;
+  font-weight:900; font-size:17px; box-shadow:var(--btn-shadow); color:var(--ink);
+  transition:transform .05s, box-shadow .05s}
+.gbtn:active{transform:translateY(3px); box-shadow:none}
+.gbtn .gicon{color:var(--ink); display:flex}
+.gbtn .gicon svg{width:34px; height:34px}
+.gbtn .mk{width:26px;height:26px;border-radius:50%;border:2.5px solid var(--line2);
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:transparent}
+.gbtn.on{border-color:currentColor}
+.gbtn.on .mk{background:currentColor; border-color:currentColor}
+.gbtn.on .mk span{color:#FFF7EC; display:block; transform:none}
+.timer-card{display:flex; flex-direction:column; gap:10px}
+.timer-top{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.timer-num{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:44px; line-height:1;
+  letter-spacing:-1px; font-variant-numeric:tabular-nums}
+.timer-btns{display:flex; gap:8px}
+.tbtn{border:2px solid var(--line2); border-radius:10px; background:var(--card2);
+  font-weight:800; font-size:14px; padding:10px 14px; box-shadow:var(--btn-shadow)}
+.tbtn:active{transform:translateY(2px); box-shadow:none}
+.timer-bar{height:8px; border-radius:99px; background:var(--card2); border:1.5px solid var(--line); overflow:hidden}
+.timer-bar i{display:block; height:100%; background:var(--amber); transition:width .3s linear}
+.timer-card.low .timer-bar i{background:var(--red)}
+.timer-card.timeout{animation:flashout .5s steps(2,end) 4}
+.timer-card.timeout .timer-num{color:var(--red)}
+.timeout-lbl{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-size:19px; color:var(--red)}
+@keyframes flashout{0%{background:var(--card)}50%{background:var(--red)}100%{background:var(--card)}}
+.skip-zone{border:2px dashed var(--line2); border-radius:var(--r-md); background:transparent;
+  width:100%; padding:12px; font-weight:700; font-size:15px; color:var(--muted)}
+.skip-zone.armed{border-color:var(--red); color:var(--red); border-style:solid; background:var(--card)}
+.hist{display:flex; gap:8px; overflow-x:auto; padding:2px 2px 6px; scrollbar-width:none}
+.hist::-webkit-scrollbar{display:none}
+.hchip{flex:none; display:flex; align-items:center; gap:6px; border:2px solid var(--line2);
+  border-radius:10px; background:var(--card); padding:7px 10px; font-size:12.5px; font-weight:700}
+.hchip .dot{width:10px; height:10px; border-radius:50%; background:currentColor}
+.hchip .got{font-family:'IBM Plex Mono',monospace; font-weight:700; color:var(--ink)}
+.hchip .miss{color:var(--muted); font-weight:600}
+
+/* ---------- finish ---------- */
+.banner{text-align:center; padding:20px 16px}
+.banner .wrap-lbl{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-size:25px; margin:4px 0 2px}
+.banner .winner{font-weight:900; font-size:34px; letter-spacing:-.5px; line-height:1.1;
+  display:flex; align-items:center; justify-content:center; gap:10px}
+.banner .winner svg{width:30px; height:30px}
+.banner .fscore{font-weight:900; font-size:26px; margin-top:8px}
+.statcards{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+@media (max-width:360px){.statcards{grid-template-columns:1fr}}
+.pcard{padding:13px}
+.pcard .ph{display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px;
+  padding-bottom:8px; border-bottom:2px solid currentColor; margin-bottom:8px}
+.pcard .ph svg{width:20px; height:20px}
+.pcard .ph span{color:var(--ink)}
+.srow{display:flex; justify-content:space-between; gap:8px; padding:5px 0; font-size:13px; color:var(--ink)}
+.srow .k{color:var(--muted); font-weight:600}
+.srow .v{font-weight:800; font-variant-numeric:tabular-nums; text-align:right}
+
+/* ---------- stats & history ---------- */
+.gitem{display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  background:var(--card); border:2px solid var(--line2); border-radius:var(--r-md);
+  padding:11px 13px; box-shadow:var(--btn-shadow)}
+.gitem:active{transform:translateY(2px); box-shadow:none}
+.gitem .gi-set{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-size:15px; line-height:1.2}
+.gitem .gi-sub{font-size:12px; color:var(--muted); margin-top:1px}
+.gitem .gi-score{margin-left:auto; font-weight:900; font-size:19px; white-space:nowrap}
+.badge{font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; border:1.5px solid var(--line2); border-radius:6px; padding:2px 6px; color:var(--muted)}
+.badge.live{color:var(--red); border-color:var(--red)}
+
+/* ---------- settings ---------- */
+.prow{display:flex; align-items:center; gap:10px; padding:10px 2px}
+.prow + .prow{border-top:1.5px dashed var(--line)}
+.prow .pemb{width:40px; height:40px; border-radius:50%; border:2px solid currentColor;
+  display:flex; align-items:center; justify-content:center; flex:none}
+.prow .pemb svg{width:22px; height:22px}
+.prow .pname{font-weight:800; font-size:16px}
+.prow .edit{margin-left:auto; border:2px solid var(--line2); background:var(--card2);
+  border-radius:8px; font-weight:700; font-size:13px; padding:7px 12px}
+.swatches{display:flex; flex-wrap:wrap; gap:10px}
+.sw{width:38px; height:38px; border-radius:50%; border:3px solid transparent; padding:0; background:currentColor}
+.sw.on{border-color:var(--ink); box-shadow:0 0 0 2px var(--bg) inset}
+.icon-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:6px}
+.ig{aspect-ratio:1; border:2px solid var(--line2); border-radius:10px; background:var(--card2);
+  display:flex; align-items:center; justify-content:center; padding:0}
+.ig svg{width:24px; height:24px}
+.ig.on{border-color:currentColor; background:var(--card)}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed; inset:0; background:rgba(20,14,9,.55); display:flex;
+  align-items:flex-end; justify-content:center; z-index:50; padding:0}
+@media (min-width:480px){.overlay{align-items:center; padding:20px}}
+.modal{background:var(--card); border:2px solid var(--line2); width:100%; max-width:440px;
+  border-radius:20px 20px 0 0; padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  max-height:86dvh; overflow-y:auto; display:flex; flex-direction:column; gap:14px}
+@media (min-width:480px){.modal{border-radius:20px}}
+.modal h3{margin:0; font-weight:900; font-size:19px}
+.modal .mtxt{font-size:14.5px; color:var(--muted); margin:0}
+
+/* ---------- misc ---------- */
+.empty{text-align:center; color:var(--muted); font-size:14px; padding:16px 8px}
+.empty .marker{font-size:18px; color:var(--ink); display:block; margin-bottom:4px}
+.spacer{flex:1}
+.center{text-align:center}
+a.link, button.link{background:none;border:none;padding:6px;font-size:14px;font-weight:700;
+  color:var(--muted); text-decoration:underline; text-underline-offset:3px}
+@media (prefers-reduced-motion:reduce){
+  .spin .reelgrp{animation:none}
+  .timer-card.timeout{animation:none; outline:3px solid var(--red)}
+}
+:focus-visible{outline:2.5px solid var(--red); outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const ICONS={"raven":"m400-240-51 123q-6 15-21.5 21.5T297-95q-15-6-21.5-21.5T275-147l43-104q-106-28-172-114T80-560v-160q0-66 47-113t113-47q22 0 42 7.5t40 15.5l191 78q13 5 12.5 18.5T512-742l-112 42v60l426 271q7 5 11 11.5t6 14.5l28 140q3 17-7.5 30T836-160h-14q-11 0-19-5.5T790-180l-30-60H560v120q0 17-11.5 28.5T520-80q-17 0-28.5-11.5T480-120v-120h-80ZM240-680q-17 0-28.5-11.5T200-720q0-17 11.5-28.5T240-760q17 0 28.5 11.5T280-720q0 17-11.5 28.5T240-680Zm160 320Zm0 40h353l-63-40H400q-36 0-67.5-14.5T279-415q-13-14-25-38.5T242-498q0-17 11.5-28.5T282-538q15 0 26 10t14 24q5 28 27 46t51 18h165L320-596v-124q0-33-23.5-56.5T240-800q-33 0-56.5 23.5T160-720v160q0 100 70 170t170 70Z","sound_detection_dog_barking":"M194-80v-395h80v315h280v-193l105-105q29-29 45-65t16-77q0-40-16.5-76T659-741l-25-26-127 127H347l-43 43-57-56 67-67h160l160-160 82 82q40 40 62 90.5T800-600q0 57-22 107.5T716-402l-82 82v240H194Zm197-187L183-475q-11-11-17-26t-6-31q0-16 6-30.5t17-25.5l84-85 124 123q28 28 43.5 64.5T450-409q0 40-15 76.5T391-267Z","local_florist":"M480-81q0-126 76-223t193-126q19-5 37.5-3.5T819-418q12 13 13.5 31t-3.5 35q-28 118-125.5 194.5T480-81Zm98-97q57-21 100-64t64-100q-57 21-100 64t-64 100Zm-98 98q0-126-76-223T211-429q-19-5-37.5-3.5T141-417q-12 13-13.5 31t3.5 35q28 118 125.5 194.5T480-80Zm-98-98q-57-21-100-64t-64-100q57 21 100 64t64 100Zm196 0Zm-196 0Zm98-422q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 240q-39 0-70.5-21.5T364-438q-5 0-9 .5t-9 .5q-52 0-89-37t-37-89q0-21 7-40.5t21-36.5q-13-17-20-36.5t-7-40.5q0-52 36.5-89t88.5-37q5 0 9 .5t9 .5q14-35 45.5-56.5T480-920q39 0 70.5 21.5T596-842q5 0 9-.5t9-.5q52 0 88.5 37t36.5 89q0 21-6.5 40.5T712-640q13 17 20 36.5t7 40.5q0 52-36.5 89T614-437q-5 0-9-.5t-9-.5q-14 35-45.5 56.5T480-360Zm134-157q19 0 32.5-13.5T660-563q0-14-7.5-24.5T633-604l-35-17q-2 11-6 21.5t-9 19.5q-5 9-12 17t-15 15l32 23q5 4 11.5 6t14.5 2Zm-16-142 35-17q12-6 19-17t7-24q0-19-13-32.5T614-763q-8 0-14 2t-12 6l-33 23q8 7 15.5 15t12.5 17q5 9 9 19.5t6 21.5Zm-159-93q10-4 20-6t21-2q11 0 21 2t20 6l5-44q2-18-12.5-31T480-840q-19 0-33.5 13T434-796l5 44Zm41 312q19 0 33.5-13t12.5-31l-5-44q-10 4-20 6t-21 2q-11 0-21-2t-20-6l-5 44q-2 18 12.5 31t33.5 13ZM362-659q2-11 6-21.5t9-19.5q5-9 12-17t15-15l-32-23q-5-4-11.5-6t-14.5-2q-19 0-32.5 13.5T300-717q0 13 7.5 24t19.5 17l35 17Zm-16 141q8 0 14-1.5t12-6.5l33-22q-8-7-15.5-15T377-580q-5-9-9-19.5t-6-21.5l-35 17q-12 6-19 17t-7 24q1 19 13.5 32t31.5 13Zm237-62Zm0-120Zm-103-60Zm0 240ZM377-700Zm0 120Z","rocket":"M319-230q-10-29-18.5-59T287-349l-47 32v119l79-32Zm147-535q-48 51-77 134.5T360-455q0 60 11 117.5t29 97.5h160q18-40 29-97.5T600-455q0-92-29-175.5T494-765q-3-3-6.5-4.5T480-771q-4 0-7.5 1.5T466-765Zm14 325q-33 0-56.5-23.5T400-520q0-33 23.5-56.5T480-600q33 0 56.5 23.5T560-520q0 33-23.5 56.5T480-440Zm161 210 79 32v-119l-47-32q-5 30-13.5 60T641-230ZM511-856q84 72 126.5 177T680-440l84 56q17 11 26.5 29t9.5 38v178q0 21-17.5 33t-37.5 4l-144-58H359l-144 58q-20 8-37.5-4T160-139v-178q0-20 9.5-38t26.5-29l84-56q0-134 42.5-239T449-856q7-5 15-8t16-3q8 0 16 3t15 8Z","cruelty_free":"M380-80q-75 0-127.5-52.5T200-260q0-35 17-64.5t63-75.5q6-6 11.5-12.5T306-430q-51-78-78.5-163.5T200-760q0-58 21-89t59-31q57 0 102 55t68 101q9 20 16.5 40.5T480-641q6-22 13.5-42.5T511-724q22-46 67-101t102-55q38 0 59 31t21 89q0 81-27.5 166.5T654-430q9 11 14.5 17.5T680-400q46 46 63 75.5t17 64.5q0 75-52.5 127.5T580-80q-45 0-72.5-10L480-100l-27.5 10Q425-80 380-80Zm0-80q23 0 46-5.5t43-16.5q-11-5-20-17t-9-21q0-8 11.5-14t28.5-6q17 0 28.5 6t11.5 14q0 9-9 21t-20 17q20 11 43 16.5t46 5.5q42 0 71-29t29-71q0-18-10-35t-30-34q-14-12-23-21t-29-34q-29-35-48-45.5T480-440q-41 0-60.5 10.5T372-384q-20 25-29 34t-23 21q-20 17-30 34t-10 35q0 42 29 71t71 29Zm40-130q-8 0-14-9t-6-21q0-12 6-21t14-9q8 0 14 9t6 21q0 12-6 21t-14 9Zm120 0q-8 0-14-9t-6-21q0-12 6-21t14-9q8 0 14 9t6 21q0 12-6 21t-14 9ZM363-489q11-8 25-14t31-11q-2-48-14.5-95.5T373-696q-19-40-42-67.5T285-799q-2 6-3.5 15.5T280-760q0 68 21.5 138T363-489Zm234 0q40-63 61.5-133T680-760q0-14-1.5-23.5T675-799q-23 8-46 35.5T587-696q-18 39-30.5 86.5T541-514q15 4 29 10.5t27 14.5Z","potted_plant":"M342-160h276l40-160H302l40 160Zm0 80q-28 0-49-17t-28-44l-45-179h520l-45 179q-7 27-28 44t-49 17H342ZM200-400h560v-80H200v80Zm280-240q0-90 61-156t152-80q5-1 9 1t8 5q4 3 5.5 7.5t.5 9.5q-11 79-64.5 137.5T520-644v84h280q17 0 28.5 11.5T840-520v120q0 33-23.5 56.5T760-320H200q-33 0-56.5-23.5T120-400v-120q0-17 11.5-28.5T160-560h280v-84q-78-13-131.5-71.5T244-853q-1-5 .5-9.5t5.5-7.5q4-3 8-5t9-1q91 14 152 80t61 156Z","star_shine":"M760-360q12-12 28.5-12t28.5 12l63 64q12 12 12 28t-12 28q-12 12-28 12t-28-12l-64-63q-12-12-12-28.5t12-28.5Zm40-480q12 12 12 28.5T800-783l-63 63q-12 12-28.5 12T680-720q-12-12-12-28.5t12-28.5l64-63q12-12 28-12t28 12Zm-640 0q12-12 28.5-12t28.5 12l63 64q12 12 12 28t-12 28q-12 12-28.5 12T223-720l-63-63q-12-12-12-28.5t12-28.5Zm40 480q12 12 12 28.5T200-303l-63 63q-12 12-28.5 12T80-240q-12-12-12-28.5T80-297l64-63q12-12 28-12t28 12Zm154 73 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143Zm126-194Zm0 212L314-169q-11 7-23 6t-21-8q-9-7-14-17.5t-2-23.5l44-189-147-127q-10-9-12.5-20.5T140-571q4-11 12-18t22-9l194-17 75-178q5-12 15.5-18t21.5-6q11 0 21.5 6t15.5 18l75 178 194 17q14 2 22 9t12 18q4 11 1.5 22.5T809-528L662-401l44 189q3 13-2 23.5T690-171q-9 7-21 8t-23-6L480-269Z","kid_star":"m305-704 112-145q12-16 28.5-23.5T480-880q18 0 34.5 7.5T543-849l112 145 170 57q26 8 41 29.5t15 47.5q0 12-3.5 24T866-523L756-367l4 164q1 35-23 59t-56 24q-2 0-22-3l-179-50-179 50q-5 2-11 2.5t-11 .5q-32 0-56-24t-23-59l4-165L95-523q-8-11-11.5-23T80-570q0-25 14.5-46.5T135-647l170-57Zm49 69-194 64 124 179-4 191 200-55 200 56-4-192 124-177-194-66-126-165-126 165Zm126 135Z","taunt":"M218-381q-24 13-51 5.5T126-406q-17-29-6-60t43-42l305-101q14-5 27.5 1.5T518-584q8 14 2.5 29.5T501-531L218-381Zm102 261q-33 0-56.5-23.5T240-200v-147l315-166q14-8 19-23.5t-2-29.5l193-96q15-8 30.5-1.5T821-637q7 13 3.5 27T810-588L560-400v200q0 33-23.5 56.5T480-120H320Zm-20-440q-58 0-99-41t-41-99q0-58 41-99t99-41q58 0 99 41t41 99q0 58-41 99t-99 41Z","chef_hat":"M400-400q17 0 28.5-11.5T440-440v-120q0-17-11.5-28.5T400-600q-17 0-28.5 11.5T360-560v120q0 17 11.5 28.5T400-400Zm-200-60q-46-23-73-66.5T100-621q0-75 51.5-127T278-800q12 0 24.5 2t24.5 5q25-41 65-64t88-23q48 0 88 23t65 64q12-3 24-5t25-2q75 0 126.5 52T860-621q0 51-27 94.5T760-460v220H200v-220Zm360 60q17 0 28.5-11.5T600-440v-120q0-17-11.5-28.5T560-600q-17 0-28.5 11.5T520-560v120q0 17 11.5 28.5T560-400Zm-280 80h400v-189l44-22q26-13 41-36.5t15-52.5q0-42-28.5-71T682-720q-11 0-20 2t-19 5l-47 13-31-52q-14-23-36.5-35.5T480-800q-26 0-48.5 12.5T395-752l-31 52-48-13q-10-2-19.5-4.5T277-720q-41 0-69 29t-28 71q0 29 15 52.5t41 36.5l44 22v189Zm-80 80h80v80h400v-80h80v80q0 33-23.5 56.5T680-80H280q-33 0-56.5-23.5T200-160v-80Zm280-80Z","chess_bishop":"M240-80q-33 0-56.5-23.5T160-160v-76q0-21 9-39.5t26-31.5q43-35 77.5-78.5T330-480h-50q-17 0-28.5-11.5T240-520q0-17 11.5-28.5T280-560h32l-40-66q-14-23-11-50.5t23-47.5l168-168q12-12 28-12t28 12l168 168q20 20 23 47.5T688-626l-40 66h32q17 0 28.5 11.5T720-520q0 17-11.5 28.5T680-480h-50q23 51 57.5 94.5T765-307q16 14 25.5 32t9.5 39v76q0 33-23.5 56.5T720-80H240Zm0-80h480v-80q-60-48-104.5-108T545-480H416q-26 72-71 132T240-240v80Zm165-400h150l64-108-139-139-139 139 64 108Zm75-80q17 0 28.5-11.5T520-680q0-17-11.5-28.5T480-720q-17 0-28.5 11.5T440-680q0 17 11.5 28.5T480-640Zm0-167Zm0 647Z","matter":"M480-540q-66 0-123-24.5T256-632l72-43q24 20 52 33t60 18v-212l40-24 40 24v212q32-5 60-18t52-33l72 43q-44 43-101 67.5T480-540Zm-49 375-74-39q2-9 2.5-18t.5-18q0-23-4-45.5T344-328L161-218l-41-22v-47l182-109q-20-23-46-41t-56-29v-84q104 27 172 112.5T440-240q0 20-2 38.5t-7 36.5Zm98 0q-5-18-7-36.5t-2-38.5q0-112 68-197.5T760-550v84q-30 11-56 29t-46 41l182 109v47l-41 22-183-110q-8 20-12 42.5t-4 45.5q0 9 .5 18t2.5 18l-74 39Z","outlet":"M360-480q17 0 28.5-11.5T400-520v-120q0-17-11.5-28.5T360-680q-17 0-28.5 11.5T320-640v120q0 17 11.5 28.5T360-480Zm80 240h80q17 0 28.5-11.5T560-280v-40q0-33-23.5-56.5T480-400q-33 0-56.5 23.5T400-320v40q0 17 11.5 28.5T440-240Zm160-240q17 0 28.5-11.5T640-520v-120q0-17-11.5-28.5T600-680q-17 0-28.5 11.5T560-640v120q0 17 11.5 28.5T600-480ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z","spa":"M448-85q-70-13-136-45t-117.5-89q-51.5-57-83-141T80-560v-8q0-14 9-23t23-9h8q51 0 105 13t101 39q11-74 44-152t79-141q12-17 31-17t31 17q46 63 79 141t44 152q47-26 101-39t105-13h4q15 0 25.5 10.5T880-564v4q0 116-31.5 200t-83 141Q714-162 648-130T512-85q-13 2-32 2t-32-2Zm30-77q-11-165-99.5-250.5T162-518q-2 0 0 0 11 169 102.5 254T478-162q2 1 0 .5t0-.5Zm-76-340q20 17 42 40.5t36 45.5q15-22 36.5-45.5T558-502q-2-57-22.5-119T480-742v.5-.5q-35 59-55.5 121T402-502Zm122 170q12 32 20.5 70t13.5 82q36-12 76-36t74-64q34-40 59-98.5T798-518q0-2 0 0-94 14-165 62.5T524-332Z","icecream":"M120-560q0-51 29.5-92t74.5-58q18-91 89.5-150.5T480-920q95 0 166.5 59.5T736-710q45 17 74.5 58t29.5 92q0 75-53 119t-119 41L517-108q-5 11-14.5 16T482-87q-11 0-21-5t-15-16L294-400q-71 3-122.5-41T120-560Zm160 80q15 0 29.5-5t26.5-17l22-22 26 16q21 14 45.5 21t50.5 7q26 0 50.5-7t45.5-21l26-16 22 22q12 12 26.5 17t29.5 5q33 0 56.5-23.5T760-560q0-30-19-52.5T692-640l-30-4-2-32q-5-69-57-116.5T480-840q-71 0-123 47.5T300-676l-2 32-30 6q-30 6-49 27t-19 51q0 33 23.5 56.5T280-480Zm202 266 108-210q-24 12-52 18t-58 6q-27 0-54.5-6T372-424l110 210Zm-2-446Z","wb_sunny":"M440-840v-40q0-17 11.5-28.5T480-920q17 0 28.5 11.5T520-880v40q0 17-11.5 28.5T480-800q-17 0-28.5-11.5T440-840Zm0 760v-40q0-17 11.5-28.5T480-160q17 0 28.5 11.5T520-120v40q0 17-11.5 28.5T480-40q-17 0-28.5-11.5T440-80Zm440-360h-40q-17 0-28.5-11.5T800-480q0-17 11.5-28.5T840-520h40q17 0 28.5 11.5T920-480q0 17-11.5 28.5T880-440Zm-760 0H80q-17 0-28.5-11.5T40-480q0-17 11.5-28.5T80-520h40q17 0 28.5 11.5T160-480q0 17-11.5 28.5T120-440Zm670-293-14 14q-11 11-27.5 11T720-720q-11-11-11.5-27.5T719-776l15-15q11-12 28-12t29 12q12 12 11.5 29T790-733ZM241-184l-15 15q-11 12-28 12t-29-12q-12-12-11.5-29t12.5-29l14-14q11-11 27.5-11t28.5 12q11 11 11.5 27.5T241-184Zm492 14-14-14q-11-11-11-27.5t12-28.5q11-11 27.5-11.5T776-241l15 15q12 11 12 28t-12 29q-12 12-29 11.5T733-170ZM184-719l-15-15q-12-11-12-28t12-29q12-12 29-11.5t29 12.5l14 14q11 11 11 27.5T240-720q-11 11-27.5 11.5T184-719Zm296 479q-100 0-170-70t-70-170q0-100 70-170t170-70q100 0 170 70t70 170q0 100-70 170t-170 70Zm0-80q67 0 113.5-46.5T640-480q0-67-46.5-113.5T480-640q-67 0-113.5 46.5T320-480q0 67 46.5 113.5T480-320Zm0-160Z","flash_on":"m480-336 128-184H494l80-280H360v320h120v144Zm215-170L455-159q-6 9-15.5 12t-18.5 0q-9-3-15-10.5t-6-18.5v-224h-40q-33 0-56.5-23.5T280-480v-320q0-33 23.5-56.5T360-880h234q32 0 51.5 25t11.5 55l-57 200h45q36 0 53.5 32t-3.5 62Zm-215 26H360h120Z","filter_vintage":"M482-80q-57 0-101-36t-55-92q-53 17-107-2t-83-66q-30-48-22-106.5t52-97.5q-42-38-50.5-94T134-678q27-48 81.5-69.5T324-752q11-56 55-92t101-36q57 0 101 36t55 92q56-17 108.5 3t81.5 71q27 50 19.5 104.5T794-480q44 39 52.5 96.5T828-276q-29 51-81.5 68T638-208q-11 56-55 92T482-80Zm0-80q47 0 70.5-40.5T552-280l-28-46q-11 3-21 4.5t-21 1.5q-10 0-20.5-1.5T440-326l-28 46q-24 39-.5 79.5T482-160ZM202-320q24 41 70.5 41t69.5-41l26-46q-8-8-15-17t-12-19q-5-9-9-18.5t-7-19.5h-53q-47 0-70 39.5t0 80.5Zm416 0q23 41 69.5 41t70.5-41q23-41 0-80.5T688-440h-53q-2 10-6.5 19.5T619-402q-5 10-12 19t-15 17l26 46ZM480-480Zm-155-40q3-11 7.5-21.5T342-561q5-9 11.5-17t14.5-16l-26-46q-23-41-69.5-41T202-640q-23 41 0 80.5t70 39.5h53Zm363 0q47 0 70-39.5t0-80.5q-24-41-70.5-41T618-640l-26 46q8 8 14.5 16t11.5 17q5 9 9.5 19.5T635-520h53ZM437-634q11-3 21.5-4.5T480-640q11 0 21.5 1.5T523-634l27-46q23-39 0-79.5T480-800q-47 0-70 40t0 80l27 46Zm0 0q11-3 21.5-4.5T480-640q11 0 21.5 1.5T523-634q-11-3-21.5-4.5T480-640q-11 0-21.5 1.5T437-634Zm-96 232q-5-9-9-18.5t-7-19.5q3 10 7 19.5t9 18.5q5 10 12 19t15 17q-8-8-15-17t-12-19Zm-16-118q3-11 7.5-21.5T342-561q5-9 11.5-17t14.5-16q-8 8-14.5 16T342-561q-5 9-9.5 19.5T325-520Zm157 200q-10 0-20.5-1.5T440-326q11 3 21.5 4.5T482-320q11 0 21-1.5t21-4.5q-11 3-21 4.5t-21 1.5Zm110-46q8-8 15-17t12-19q5-9 9.5-18.5T635-440q-2 10-6.5 19.5T619-402q-5 10-12 19t-15 17Zm43-154q-3-11-7.5-21.5T618-561q-5-9-11.5-17T592-594q8 8 14.5 16t11.5 17q5 9 9.5 19.5T635-520ZM480-400q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Z","flare":"M280-480q0 17-11.5 28.5T240-440H80q-17 0-28.5-11.5T40-480q0-17 11.5-28.5T80-520h160q17 0 28.5 11.5T280-480Zm58-142q-11 11-28 11t-28-11l-28-28q-11-11-11-28t11-28q11-11 28-11t28 11l28 28q11 11 11 28t-11 28Zm102-98v-160q0-17 11.5-28.5T480-920q17 0 28.5 11.5T520-880v160q0 17-11.5 28.5T480-680q-17 0-28.5-11.5T440-720Zm182 98q-11-11-11-28t11-28l28-28q11-11 28-11t28 11q11 11 11 28t-11 28l-28 28q-11 11-28 11t-28-11Zm58 142q0-17 11.5-28.5T720-520h160q17 0 28.5 11.5T920-480q0 17-11.5 28.5T880-440H720q-17 0-28.5-11.5T680-480ZM480-360q-50 0-85-35t-35-85q0-50 35-85t85-35q50 0 85 35t35 85q0 50-35 85t-85 35Zm142 22q11-11 28-11t28 11l28 28q11 11 11 28t-11 28q-11 11-28 11t-28-11l-28-28q-11-11-11-28t11-28Zm-284 0q11 11 11 28t-11 28l-28 28q-11 11-28 11t-28-11q-11-11-11-28t11-28l28-28q11-11 28-11t28 11Zm142 58q17 0 28.5 11.5T520-240v160q0 17-11.5 28.5T480-40q-17 0-28.5-11.5T440-80v-160q0-17 11.5-28.5T480-280Z","self_improvement":"M272-160q-30 0-51-21t-21-51q0-21 12-39.5t32-26.5l156-62v-90q-48 55-108 87.5T162-322q-17 2-29.5-9.5T120-360q0-17 11-29t28-14q55-8 101-34t84-71l54-64q12-14 28-21t34-7h40q18 0 34 7t28 21l54 64q38 45 84 71t101 34q17 2 28 14t11 29q0 17-12.5 28.5T798-322q-70-8-130-40.5T560-450v90l156 62q20 8 32 26.5t12 39.5q0 30-21 51t-51 21H400v-20q0-26 17-43t43-17h120q9 0 14.5-5.5T600-260q0-9-5.5-14.5T580-280H460q-42 0-71 29t-29 71v20h-88Zm208-480q-33 0-56.5-23.5T400-720q0-33 23.5-56.5T480-800q33 0 56.5 23.5T560-720q0 33-23.5 56.5T480-640Z","android":"M40-240q9-107 65.5-197T256-580l-74-128q-6-9-3-19t13-15q8-5 18-2t16 12l74 128q86-36 180-36t180 36l74-128q6-9 16-12t18 2q10 5 13 15t-3 19l-74 128q94 53 150.5 143T920-240H40Zm240-110q21 0 35.5-14.5T330-400q0-21-14.5-35.5T280-450q-21 0-35.5 14.5T230-400q0 21 14.5 35.5T280-350Zm400 0q21 0 35.5-14.5T730-400q0-21-14.5-35.5T680-450q-21 0-35.5 14.5T630-400q0 21 14.5 35.5T680-350Z","pets":"M180-475q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Zm180-160q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Zm240 0q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29Zm180 160q-42 0-71-29t-29-71q0-42 29-71t71-29q42 0 71 29t29 71q0 42-29 71t-71 29ZM266-75q-45 0-75.5-34.5T160-191q0-52 35.5-91t70.5-77q29-31 50-67.5t50-68.5q22-26 51-43t63-17q34 0 63 16t51 42q28 32 49.5 69t50.5 69q35 38 70.5 77t35.5 91q0 47-30.5 81.5T694-75q-54 0-107-9t-107-9q-54 0-107 9t-107 9Z","grass":"M120-160q-17 0-28.5-11.5T80-200q0-17 11.5-28.5T120-240h190q-17-63-56-114t-94-83q-22-13-21-28.5t27-14.5q131 2 222.5 95T480-160H120Zm440 0q0-42-9-83.5T525-323q42-69 112.5-112T794-480q24-1 25 15.5T800-437q-55 32-94 83t-56 114h190q17 0 28.5 11.5T880-200q0 17-11.5 28.5T840-160H560Zm-80-239q0-106 60.5-188.5T696-702q23-8 34 5t-9 32q-32 30-55.5 67T626-519q-44 21-80.5 51.5T480-399Zm-73-75q-12-9-24-17t-25-16q0-6 1-12.5t1-12.5q0-53-11.5-101T315-726q-11-22 1.5-32.5T349-753q36 29 63.5 66t44.5 81q-18 30-31 63.5T407-474Z","emoji_nature":"m720-600-32 28q-14 13-33 13t-33-11q-14-11-19-28t1-36l16-50-34-20q-16-9-22.5-26t-1.5-34q5-17 20-26.5t34-9.5h40l12-38q6-19 20.5-30.5T720-880q17 0 31.5 11.5T772-838l12 38h40q19 0 33.5 9.5T878-764q7 18 0 35t-22 25l-36 20 16 50q6 19 1 36.5T818-570q-15 11-33.5 11T752-572l-32-28Zm0-80q17 0 28.5-11.5T760-720q0-17-11.5-28.5T720-760q-17 0-28.5 11.5T680-720q0 17 11.5 28.5T720-680ZM552-244q23 60-15 112T430-80q-33 0-62.5-17T324-142q-83 12-137.5-42.5T142-324q-30-17-46-46.5T80-438q0-61 55.5-98.5T244-552l62 26q20-31 53-50.5t71-21.5v-52q0-13 8.5-21.5T460-680q13 0 21.5 8.5T490-650v60q37 11 61 34.5t41 65.5h58q13 0 21.5 8.5T680-460q0 13-8.5 21.5T650-430h-52q-2 38-20.5 71T528-306l24 62Zm-248 24q0-27 4.5-52.5T322-322q-23 11-49.5 15.5T220-304q0 39 22.5 61.5T304-220Zm-74-164q32 0 56.5-8t63.5-32l-120-50q-29-12-49.5.5T160-434q0 26 17 38t53 12Zm200 224q25 0 40.5-17.5T478-214l-54-136q-19 32-29.5 64T384-228q0 33 11.5 50.5T430-160Zm66-222q10-10 16-26.5t6-34.5q0-32-21-54t-52-22q-18 0-34 6t-27 17l78 36 34 78Zm-174 60Z","mood_bad":"M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-260q-57 0-107 28t-80 77q-6 12 1 23.5t21 11.5h329q14 0 21-11.5t1-23.5q-30-49-79.5-77T480-420Z","mood":"M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-100q58 0 107-28t79-76q6-12-1-24t-21-12H316q-14 0-21 12t-1 24q30 48 79.5 76T480-260Z","sentiment_neutral":"M620-520q25 0 42.5-17.5T680-580q0-25-17.5-42.5T620-640q-25 0-42.5 17.5T560-580q0 25 17.5 42.5T620-520Zm-280 0q25 0 42.5-17.5T400-580q0-25-17.5-42.5T340-640q-25 0-42.5 17.5T280-580q0 25 17.5 42.5T340-520Zm50 180h180q13 0 21.5-8.5T600-370q0-13-8.5-21.5T570-400H390q-13 0-21.5 8.5T360-370q0 13 8.5 21.5T390-340Zm90 260q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z","surfing":"M120-40q-17 0-28.5-11.5T80-80q0-17 11.5-28.5T120-120q26 0 51.5-6.5T220-147q9-5 20-5t20 5q23 14 48.5 20.5T360-120q26 0 51.5-6.5T460-147q9-5 20.5-5t19.5 5q23 14 48.5 20.5T600-120q26 0 51.5-6.5T700-147q8-5 20-5t20 5q23 14 48.5 20.5T840-120q17 0 28.5 11.5T880-80q0 17-11.5 28.5T840-40q-31 0-61-7.5T720-70q-29 15-59 22.5T600-40q-31 0-61-7.5T480-70q-29 15-59 22.5T360-40q-31 0-61-7.5T240-70q-29 15-59 22.5T120-40Zm367-520 153 120v154q16 11 31 23t29 23q-21 18-46 29t-54 11q-36 0-67-17t-53-43q-22 26-53 43t-67 17q-10 0-19.5-1.5T322-206q-86-59-144-119t-58-104q0-31 24-41t50-10q29 0 67 8.5t81 24.5l-21-124q-4-20 4.5-39.5T352-642l86-58q-3 0-14.5-2.5t-25.5-5-25.5-5Q361-715 358-715l-80 55q-14 9-30 6t-26-17q-9-14-6-30.5t17-25.5l93-64q7-5 14.5-6.5t15.5.5l206 38q14 2 27 11t22 25l35 62q21 38 56.5 64t80.5 34q16 3 26.5 15t10.5 28q0 17-12 28t-28 9q-66-9-118.5-46T577-621l-90 61Zm-75 44 18 106q27 13 67 34.5t63 35.5v-60L412-516Zm268-224q-33 0-56.5-23.5T600-820q0-33 23.5-56.5T680-900q33 0 56.5 23.5T760-820q0 33-23.5 56.5T680-740Z","thunderstorm":"m520-66 36-41-34-17q-17-9-21-28t9-34l70-80q5-7 13.5-10.5T610-280q26 0 36.5 23t-6.5 43l-36 41 34 17q17 9 21 28t-9 34l-70 80q-5 7-13.5 10.5T550 0q-26 0-36.5-23t6.5-43Zm-240 0 36-41-34-17q-17-9-21-28t9-34l70-80q5-7 13.5-10.5T370-280q26 0 36.5 23t-6.5 43l-36 41 34 17q17 9 21 28t-9 34l-70 80q-5 7-13.5 10.5T310 0q-26 0-36.5-23t6.5-43Zm20-254q-91 0-155.5-64.5T80-540q0-83 55-145t136-73q32-57 87.5-89.5T480-880q90 0 156.5 57.5T717-679q69 6 116 57t47 122q0 75-52.5 127.5T700-320H300Zm0-80h400q42 0 71-29t29-71q0-42-29-71t-71-29h-60v-40q0-66-47-113t-113-47q-48 0-87.5 26T333-704l-10 24h-25q-57 2-97.5 42.5T160-540q0 58 41 99t99 41Zm180-200Z","face_2":"M480-40q-23 0-46-3t-46-8Q300 14 194.5-4.5T33-117q-45-74-29-159t77-143v-3Q19-479 4-562.5T32-720q37-63 102-95.5T271-838q32-57 87.5-89.5T480-960q66 0 121.5 32.5T689-838q72-10 137 22.5T928-720q43 74 28 157.5T879-422v3q61 58 77 143t-29 159Q871-23 765.5-4.5T572-51q-23 5-46 8t-46 3ZM288-90q-32-18-61-41.5T174-183q-24-28-42.5-60.5T101-311q-20 36-20 76.5t21 75.5q29 48 81.5 68.5T288-90Zm384 0q52 20 104.5-.5T858-159q21-35 21-75.5T859-311q-12 35-30.5 67.5T786-183q-24 28-52.5 51.5T672-90Zm-192-30q134 0 227-93t93-227q0-29-4.5-55.5T782-547q-29 20-64 31t-73 11q-102 0-173.5-71.5T400-750q-104 26-172 112t-68 198q0 134 93 227t227 93ZM360-350q-21 0-35.5-14.5T310-400q0-21 14.5-35.5T360-450q21 0 35.5 14.5T410-400q0 21-14.5 35.5T360-350Zm240 0q-21 0-35.5-14.5T550-400q0-21 14.5-35.5T600-450q21 0 35.5 14.5T650-400q0 21-14.5 35.5T600-350ZM94-544q9-33 23-63.5t33-57.5q19-27 41.5-51t48.5-44q-43 0-79.5 21T102-681q-20 32-22 67t14 70Zm772 0q16-35 14-70t-22-67q-22-37-58.5-58T720-760q26 20 48.5 44t41.5 51q19 27 33 57.5t23 63.5Zm-221-41q29 0 54-9t46-25q-21-32-50-57.5T632-721q-34-19-72-29t-80-10v10q0 69 48 117t117 48Zm-54-239q-20-26-49-41t-62-15q-33 0-62 15t-49 41q26-8 54-12t57-4q29 0 57 4t54 12ZM150-665Zm660 0Zm-330-85Zm0-90ZM174-183Zm612 0Z","face_3":"M480-240q134 0 227-93.5T800-560q0-31-5-59.5T779-675q-27 17-57 26t-62 9q-54 0-101.5-24.5T480-734q-31 45-78.5 69.5T300-640q-32 0-62-9t-57-26q-11 27-16 55.5t-5 59.5q0 133 93.5 226.5T480-240ZM360-470q21 0 35.5-14.5T410-520q0-21-14.5-35.5T360-570q-21 0-35.5 14.5T310-520q0 21 14.5 35.5T360-470Zm240 0q21 0 35.5-14.5T650-520q0-21-14.5-35.5T600-570q-21 0-35.5 14.5T550-520q0 21 14.5 35.5T600-470ZM300-720q58 0 99-41t41-99v-18q-68 8-125 43t-95 89q18 12 38 19t42 7Zm360 0q22 0 42-6.5t38-19.5q-38-54-94.5-89T520-878v18q0 58 41 99t99 41ZM88-80q-35 0-59-26T8-167l36-395q8-84 45.5-157t96-126.5q58.5-53.5 134-84T480-960q85 0 160.5 30.5t134 84Q833-792 870.5-719T916-562l36 395q3 35-21 61t-59 26H88Zm392-80q-125 0-225-69.5T110-408L88-160h784l-22-248q-45 109-144.5 178.5T480-160Zm40-718Zm-80 0Zm40 718h392H88h392Z","face_4":"M360-310q-21 0-35.5-14.5T310-360q0-21 14.5-35.5T360-410q21 0 35.5 14.5T410-360q0 21-14.5 35.5T360-310Zm240 0q-21 0-35.5-14.5T550-360q0-21 14.5-35.5T600-410q21 0 35.5 14.5T650-360q0 21-14.5 35.5T600-310ZM480-80q134 0 227-93t93-227q0-24-3-46.5T786-490q-21 5-42 7.5t-44 2.5q-91 0-172-39T390-628q-32 78-91.5 135.5T160-406v6q0 134 93 227t227 93Zm-54-635q42 70 114 112.5T700-560q14 0 27-1.5t27-3.5q-42-70-114-112.5T480-720q-14 0-27 1.5t-27 3.5ZM177-501q51-29 89-75t57-103q-51 29-89 75t-57 103Zm249-214Zm-103 36Zm-196 92q28-53 70.5-95.5T293-753q-17-21-41-34t-53-13q-50 0-84.5 34.5T80-681q0 29 13 53t34 41ZM480 0q-83 0-156-31.5T197-117q-54-54-85.5-127T80-400q0-29 4-57.5T96-512q-43-26-69.5-70.5T0-681q0-83 58-141t141-58q53 0 97.5 25.5T368-784q26-8 54.5-12t57.5-4q83 0 156 31.5T763-683q54 54 85.5 127T880-400q0 83-31.5 156T763-117q-54 54-127 85.5T480 0ZM197-683Z","face_6":"M480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Zm0-720q-111 0-196 66.5T171-564q20-5 41.5-19.5T262-654q15-31 44-48.5t64-17.5h220q35 0 64 17.5t44 48.5q28 57 50.5 71t40.5 19q-28-103-112.5-169.5T480-800Zm0 640q134 0 227.5-94T800-482q-71-7-109-44.5T626-618q-5-11-14.5-16.5T591-640H370q-12 0-21.5 5.5T334-618q-27 55-66 92.5T160-481q0 134 93.5 227.5T480-160ZM360-390q-21 0-35.5-14.5T310-440q0-21 14.5-35.5T360-490q21 0 35.5 14.5T410-440q0 21-14.5 35.5T360-390Zm240 0q-21 0-35.5-14.5T550-440q0-21 14.5-35.5T600-490q21 0 35.5 14.5T650-440q0 21-14.5 35.5T600-390ZM480-720Z","face_5":"M480-720q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-160 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm280 40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-320 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm160 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-120 40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-240 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm40 40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm160 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm-480 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm40-40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80-80q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm40-40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 0q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm40 40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm80 80q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6Zm40 40q-8 0-14-6t-6-14q0-8 6-14t14-6q8 0 14 6t6 14q0 8-6 14t-14 6ZM360-390q-21 0-35.5-14.5T310-440q0-21 14.5-35.5T360-490q21 0 35.5 14.5T410-440q0 21-14.5 35.5T360-390Zm240 0q-21 0-35.5-14.5T550-440q0-21 14.5-35.5T600-490q21 0 35.5 14.5T650-440q0 21-14.5 35.5T600-390ZM480-80q-82 0-155-31.5t-127.5-86Q143-252 111.5-325T80-480q0-83 31.5-156t86-127Q252-817 325-848.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 82-31.5 155T763-197.5q-54 54.5-127 86T480-80Zm0-80q134 0 227-93.5T800-480q0-134-93-227t-227-93q-133 0-226.5 93T160-480q0 133 93.5 226.5T480-160Z","text_fields_alt":"M120-200h720q17 0 28.5 11.5T880-160q0 17-11.5 28.5T840-120H120q-17 0-28.5-11.5T80-160q0-17 11.5-28.5T120-200Zm640-110v-500q0-13 8.5-21.5T790-840q13 0 21.5 8.5T820-810v500q0 13-8.5 21.5T790-280q-13 0-21.5-8.5T760-310ZM308-424l-41 115q-5 14-16.5 21.5T225-280q-23 0-36.5-19.5T183-341l176-469q5-14 17-22t26-8h36q15 0 26.5 8t16.5 22l177 470q8 22-5.5 41T616-280q-14 0-26-8t-17-22l-39-114H308Zm28-80h168l-82-232h-4l-82 232Z","person":"M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-240v-32q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v32q0 33-23.5 56.5T720-160H240q-33 0-56.5-23.5T160-240Zm80 0h480v-32q0-11-5.5-20T700-306q-54-27-109-40.5T480-360q-56 0-111 13.5T260-306q-9 5-14.5 14t-5.5 20v32Zm240-320q33 0 56.5-23.5T560-640q0-33-23.5-56.5T480-720q-33 0-56.5 23.5T400-640q0 33 23.5 56.5T480-560Zm0-80Zm0 400Z","text_ad":"M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Zm80-40h480q17 0 28.5-11.5T760-320q0-17-11.5-28.5T720-360H240q-17 0-28.5 11.5T200-320q0 17 11.5 28.5T240-280Zm0-160h480q17 0 28.5-11.5T760-480q0-17-11.5-28.5T720-520H240q-17 0-28.5 11.5T200-480q0 17 11.5 28.5T240-440Zm0-160h320q17 0 28.5-11.5T600-640q0-17-11.5-28.5T560-680H240q-17 0-28.5 11.5T200-640q0 17 11.5 28.5T240-600Z"};
+const EMBLEMS=["raven", "sound_detection_dog_barking", "local_florist", "rocket", "cruelty_free", "potted_plant", "star_shine", "kid_star", "taunt", "chef_hat", "chess_bishop", "matter", "outlet", "spa", "icecream", "wb_sunny", "flash_on", "filter_vintage", "flare", "self_improvement", "android", "pets", "grass", "emoji_nature", "mood_bad", "mood", "sentiment_neutral", "surfing", "thunderstorm", "face_2", "face_3", "face_4", "face_6", "face_5"];
+/* ================= constants ================= */
+const KEY='gts-data-v1';
+const SWATCHES=[
+ {id:'cherry', light:'#C23A2B', dark:'#FF6A57'},
+ {id:'burnt',  light:'#C4661D', dark:'#FF9A4D'},
+ {id:'goldenrod', light:'#A87B0F', dark:'#F2B33D'},
+ {id:'avocado',light:'#66802A', dark:'#A8C542'},
+ {id:'teal',   light:'#1F7A72', dark:'#3ED2C4'},
+ {id:'cobalt', light:'#2B4C9B', dark:'#6E97FF'},
+ {id:'grape',  light:'#6E3E8E', dark:'#B27FE0'},
+ {id:'pink',   light:'#C22B72', dark:'#FF6FB0'},
+];
+const TIMER_PRESETS=[30,60,90];
+
+/* ================= tiny DOM helpers ================= */
+function el(tag, attrs, ...kids){
+  const n=document.createElement(tag);
+  if(attrs) for(const k in attrs){
+    const v=attrs[k];
+    if(v==null) continue;
+    if(k==='class') n.className=v;
+    else if(k==='style') n.style.cssText=v;
+    else if(k.startsWith('on')) n.addEventListener(k.slice(2).toLowerCase(), v);
+    else if(k==='html') n.innerHTML=v;
+    else n.setAttribute(k, v);
+  }
+  for(const c of kids.flat(9)){
+    if(c==null||c===false) continue;
+    n.appendChild(typeof c==='string'||typeof c==='number'?document.createTextNode(c):c);
+  }
+  return n;
+}
+const $=s=>document.querySelector(s);
+
+function uid(){
+  if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)+Math.random().toString(36).slice(2,10);
+}
+function fmtDate(ts){
+  try{ return new Date(ts).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+  catch(e){ return ''; }
+}
+function pct(n,d){ return d?Math.round(100*n/d)+'%':'\u2013'; }
+
+/* ================= icons & cassette ================= */
+function iconSvg(name, size){
+  const d=ICONS[name]||ICONS['mood'];
+  const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  s.setAttribute('viewBox','0 -960 960 960');
+  if(size){ s.setAttribute('width',size); s.setAttribute('height',size); }
+  s.setAttribute('fill','currentColor'); s.setAttribute('aria-hidden','true');
+  const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+  p.setAttribute('d',d); s.appendChild(p);
+  return s;
+}
+function cassetteSvg(w, spin){
+  const NS='http://www.w3.org/2000/svg';
+  const s=document.createElementNS(NS,'svg');
+  s.setAttribute('viewBox','0 0 200 126');
+  s.setAttribute('width',w); s.setAttribute('height',Math.round(w*0.63));
+  s.setAttribute('class','cassette'+(spin?' spin':''));
+  s.setAttribute('aria-hidden','true');
+  const mk=(t,a)=>{const n=document.createElementNS(NS,t);for(const k in a)n.setAttribute(k,a[k]);return n};
+  s.appendChild(mk('rect',{x:3,y:3,width:194,height:120,rx:12,class:'shell'}));
+  s.appendChild(mk('rect',{x:22,y:16,width:156,height:44,rx:6,class:'lbl'}));
+  s.appendChild(mk('rect',{x:30,y:22,width:140,height:8,rx:4,fill:'currentColor'}));
+  s.appendChild(mk('rect',{x:30,y:34,width:140,height:5,rx:2.5,fill:'var(--amber)'}));
+  s.appendChild(mk('rect',{x:52,y:68,width:96,height:38,rx:19,class:'win'}));
+  for(const cx of [80,120]){
+    const g=mk('g',{class:'reelgrp'});
+    g.appendChild(mk('circle',{cx:cx,cy:87,r:12,class:'reel'}));
+    for(const ang of [90,210,330]){
+      const r1=3,r2=11,a=ang*Math.PI/180;
+      g.appendChild(mk('line',{x1:cx+r1*Math.cos(a),y1:87+r1*Math.sin(a),x2:cx+r2*Math.cos(a),y2:87+r2*Math.sin(a),class:'spokes'}));
+    }
+    s.appendChild(g);
+  }
+  for(const [cx,cy] of [[14,14],[186,14],[14,112],[186,112]])
+    s.appendChild(mk('circle',{cx:cx,cy:cy,r:4,class:'screw'}));
+  return s;
+}
+
+/* ================= storage ================= */
+var data=null;
+let saveT=null;
+const store={
+  async load(){
+    let fromWin=null;
+    if(window.storage){
+      try{ const r=await window.storage.get(KEY); if(r&&r.value!=null) fromWin=JSON.parse(r.value); }catch(e){}
+    }
+    if(fromWin) return fromWin;
+    try{ const v=localStorage.getItem(KEY); if(v!=null) return JSON.parse(v); }catch(e){}
+    return null;
+  },
+  saveSoon(){ clearTimeout(saveT); saveT=setTimeout(()=>store.saveNow(), 350); },
+  async saveNow(){
+    clearTimeout(saveT); saveT=null;
+    const str=JSON.stringify(data);
+    try{ localStorage.setItem(KEY, str); }catch(e){}
+    if(window.storage){ try{ await window.storage.set(KEY, str); }catch(e){} }
+  }
+};
+function persist(){ store.saveSoon(); }
+
+function seedData(){
+  return {
+    v:1,
+    players:[
+      {id:uid(), name:'Faye', color:'cherry', icon:'raven'},
+      {id:uid(), name:'Moni', color:'cobalt', icon:'cruelty_free'},
+    ],
+    sets:[], games:[],
+    settings:{theme:'system', sound:true, lastRules:null},
+  };
+}
+
+/* ================= theme ================= */
+const sysDark=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+function applyTheme(){
+  const t=data.settings.theme;
+  const resolved = t==='system' ? (sysDark&&sysDark.matches?'dark':'light') : t;
+  document.documentElement.dataset.theme=resolved;
+}
+if(sysDark&&sysDark.addEventListener) sysDark.addEventListener('change',()=>{ if(data&&data.settings.theme==='system'){applyTheme(); render();} });
+function swColor(id){
+  const sw=SWATCHES.find(s=>s.id===id)||SWATCHES[0];
+  return document.documentElement.dataset.theme==='dark'?sw.dark:sw.light;
+}
+function pColor(p){ return swColor(p.color); }
+
+/* ================= audio ================= */
+let actx=null;
+function sndOn(){ return data&&data.settings.sound; }
+function ensureAudio(){
+  if(!sndOn()) return null;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    if(actx.state==='suspended') actx.resume();
+    return actx;
+  }catch(e){ return null; }
+}
+function tone(freq,dur,type,gain,when){
+  const a=ensureAudio(); if(!a) return;
+  const t0=a.currentTime+(when||0);
+  const o=a.createOscillator(), g=a.createGain();
+  o.type=type||'square'; o.frequency.value=freq;
+  g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(gain||0.06,t0+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g); g.connect(a.destination);
+  o.start(t0); o.stop(t0+dur+0.05);
+}
+function beepCount(n){ tone(n===1?940:700, 0.12, 'square', 0.07); }
+function buzzTimeout(){ tone(196,0.42,'sawtooth',0.09); tone(147,0.5,'sawtooth',0.09,0.12); }
+
+/* ================= timer (module scope: survives re-renders) ================= */
+var timer={ total:0, secs:0, running:false, int:null, spentMs:0, lastTick:0, timedOut:false, everStarted:false };
+function timerInit(total){
+  timerStop();
+  timer.total=total; timer.secs=total; timer.spentMs=0; timer.timedOut=false; timer.everStarted=false;
+  timerPaint();
+}
+function timerToggle(){
+  if(timer.running){ timerStop(); }
+  else{
+    if(timer.secs<=0) return;
+    ensureAudio();
+    timer.running=true; timer.everStarted=true; timer.lastTick=performance.now();
+    timer.int=setInterval(timerTick,200);
+  }
+  timerPaint();
+}
+function timerStop(){
+  timer.running=false;
+  if(timer.int){ clearInterval(timer.int); timer.int=null; }
+}
+function timerReset(){ timerInit(timer.total); }
+function timerTick(){
+  const now=performance.now();
+  timer.spentMs+=now-timer.lastTick; timer.lastTick=now;
+  const newSecs=Math.max(0, timer.total-Math.floor(timer.spentMs/1000));
+  if(newSecs!==timer.secs){
+    timer.secs=newSecs;
+    if(newSecs<=5&&newSecs>=1) beepCount(newSecs);
+    if(newSecs===0){
+      timerStop(); timer.timedOut=true; buzzTimeout();
+      const card=$('#timer-card');
+      if(card){ card.classList.remove('timeout'); void card.offsetWidth; card.classList.add('timeout'); }
+    }
+  }
+  timerPaint();
+}
+function timerPaint(){
+  const num=$('#timer-num'), bar=$('#timer-bar-i'), card=$('#timer-card'),
+        btn=$('#timer-toggle'), lbl=$('#timeout-lbl');
+  if(!num) return;
+  const m=Math.floor(timer.secs/60), s=timer.secs%60;
+  num.textContent=m+':'+String(s).padStart(2,'0');
+  if(bar) bar.style.width=(timer.total?100*timer.secs/timer.total:0)+'%';
+  if(card) card.classList.toggle('low', timer.secs<=10);
+  if(btn) btn.textContent=timer.running?'Pause':(timer.spentMs>0&&!timer.timedOut?'Resume':'Start');
+  if(lbl) lbl.style.display=timer.timedOut?'':'none';
+}
+function timerElapsedSecs(){ return timer.everStarted?Math.min(9999,Math.round(timer.spentMs/1000)):null; }
+
+/* ================= lookups ================= */
+function playerById(id){ return data.players.find(p=>p.id===id)||{id, name:'?', color:'cherry', icon:'mood'}; }
+function gameById(id){ return data.games.find(g=>g.id===id); }
+function activeGame(){ return data.games.find(g=>g.status==='in_progress'); }
+
+/* ================= game derivations ================= */
+function nonSkipTurns(g){ return g.turns.filter(t=>!t.wasSkipped); }
+function currentGuesserId(g){
+  const n=nonSkipTurns(g).length;
+  return g.players[n%2];
+}
+function currentRound(g){ return Math.floor(nonSkipTurns(g).length/2)+1; }
+function roundsDone(g){ return Math.floor(nonSkipTurns(g).length/2); }
+function isRoundLimited(g){ return g.rules.roundLimit!=='endless'; }
+function turnPoints(t,rules){
+  if(t.wasSkipped) return 0;
+  return (t.songTitleCorrect?1:0)+(t.artistCorrect?1:0)+((rules.lyricsEnabled&&t.lyricsCorrect)?1:0);
+}
+function turnGuessedAny(t,rules){
+  return !t.wasSkipped && (t.songTitleCorrect||t.artistCorrect||(rules.lyricsEnabled&&!!t.lyricsCorrect));
+}
+function turnGuessedForMode(t,rules){
+  if(t.wasSkipped) return false;
+  if(t.songTitleCorrect||t.artistCorrect) return true;
+  return !!(rules.lyricsEnabled&&rules.lyricOnlyCountsAsGuessed&&t.lyricsCorrect);
+}
+function pointsFor(g,pid){
+  return g.turns.filter(t=>t.guessingPlayerId===pid).reduce((a,t)=>a+turnPoints(t,g.rules),0);
+}
+function scoreFor(g,pid){
+  const mine=g.turns.filter(t=>t.guessingPlayerId===pid);
+  if(g.rules.scoringMode==='songs_guessed')
+    return mine.reduce((a,t)=>a+(turnGuessedForMode(t,g.rules)?1:0),0);
+  return mine.reduce((a,t)=>a+turnPoints(t,g.rules),0);
+}
+function scoreUnit(g,n){ return g.rules.scoringMode==='songs_guessed'?(n===1?'song':'songs'):(n===1?'pt':'pts'); }
+function winnerOf(g){
+  const [a,b]=g.players, sa=scoreFor(g,a), sb=scoreFor(g,b);
+  if(sa===sb) return null;
+  return sa>sb?a:b;
+}
+function skipsUsed(g,pid){ return g.turns.filter(t=>t.wasSkipped&&t.guessingPlayerId===pid).length; }
+function skipsLeft(g,pid){ return Math.max(0,(g.rules.skipCount||0)-skipsUsed(g,pid)); }
+
+function statsFor(g,pid){
+  const rules=g.rules;
+  const mine=g.turns.filter(t=>t.guessingPlayerId===pid);
+  const ns=mine.filter(t=>!t.wasSkipped);
+  const presented=ns.length;
+  const guessed=ns.filter(t=>turnGuessedAny(t,rules)).length;
+  const titles=ns.filter(t=>t.songTitleCorrect).length;
+  const artists=ns.filter(t=>t.artistCorrect).length;
+  const lyrics=rules.lyricsEnabled?ns.filter(t=>!!t.lyricsCorrect).length:null;
+  const skips=mine.filter(t=>t.wasSkipped).length;
+  // clutch: correct guesses in final round / with skips exhausted / under time pressure
+  let clutch=0, skipsSoFar=0;
+  const finalRound=isRoundLimited(g)?g.rules.roundLimit:null;
+  for(const t of mine){
+    if(t.wasSkipped){ skipsSoFar++; continue; }
+    if(!turnGuessedAny(t,rules)) continue;
+    const lastRound=finalRound!=null&&t.roundNumber===finalRound;
+    const noSkips=rules.skipsEnabled&&skipsSoFar>=(rules.skipCount||0);
+    const pressure=rules.timerEnabled&&t.timeTakenSeconds!=null&&t.timeTakenSeconds>=Math.max(1,rules.timerSeconds-10);
+    if(lastRound||noSkips||pressure) clutch++;
+  }
+  let streak=0,best=0;
+  for(const t of ns){ if(turnGuessedAny(t,rules)){streak++; best=Math.max(best,streak);} else streak=0; }
+  return {presented,guessed,titles,artists,lyrics,skips,clutch,streak:best};
+}
+
+/* ================= lifetime derivations ================= */
+function finishedGames(){ return data.games.filter(g=>g.status==='finished'); }
+function headToHead(pa,pb){
+  let wa=0,wb=0,d=0;
+  for(const g of finishedGames()){
+    if(!(g.players.includes(pa.id)&&g.players.includes(pb.id))) continue;
+    const w=winnerOf(g);
+    if(w===pa.id) wa++; else if(w===pb.id) wb++; else d++;
+  }
+  return {wa,wb,d,total:wa+wb+d};
+}
+function lifetimeStats(pid){
+  const gs=finishedGames().filter(g=>g.players.includes(pid));
+  let presented=0,guessed=0,titles=0,artists=0,clutch=0,best=0,wins=0;
+  for(const g of gs){
+    const s=statsFor(g,pid);
+    presented+=s.presented; guessed+=s.guessed; titles+=s.titles; artists+=s.artists;
+    clutch+=s.clutch; best=Math.max(best,s.streak);
+    if(winnerOf(g)===pid) wins++;
+  }
+  return {games:gs.length,wins,presented,guessed,titles,artists,clutch,best};
+}
+
+/* ================= game actions ================= */
+var ui={ screen:'home', gameId:null, marks:{title:false,artist:false,lyrics:false},
+  skipArmed:false, skipArmT:null, modal:null, setupDraft:null, statsGameId:null };
+
+function defaultRules(){
+  return data.settings.lastRules?JSON.parse(JSON.stringify(data.settings.lastRules)):{
+    lyricsEnabled:true, skipsEnabled:true, skipCount:3,
+    scoringMode:'points', lyricOnlyCountsAsGuessed:false,
+    timerEnabled:false, timerSeconds:60, roundLimit:10,
+  };
+}
+function newSetupDraft(){
+  const d=defaultRules();
+  return { players:[data.players[0]?.id, data.players[1]?.id].filter(Boolean),
+           setLabel:'', rules:d, endless:d.roundLimit==='endless' };
+}
+function startGame(){
+  const d=ui.setupDraft;
+  const rules=JSON.parse(JSON.stringify(d.rules));
+  rules.roundLimit = d.endless?'endless':Math.max(1,parseInt(d.rules.roundLimit)||10);
+  rules.skipCount = rules.skipsEnabled?Math.max(1,parseInt(rules.skipCount)||3):0;
+  rules.timerSeconds = rules.timerEnabled?Math.max(5,parseInt(rules.timerSeconds)||60):0;
+  const label=(d.setLabel||'').trim()||'Untitled mix';
+  let set=data.sets.find(s=>s.label.toLowerCase()===label.toLowerCase());
+  if(set) set.lastUsed=Date.now();
+  else data.sets.push({id:uid(), label, lastUsed:Date.now()});
+  data.settings.lastRules=JSON.parse(JSON.stringify(rules));
+  const g={ id:uid(), players:[d.players[0],d.players[1]], setLabel:label,
+    status:'in_progress', rules, turns:[], createdAt:Date.now(), finishedAt:null };
+  data.games.push(g);
+  persist();
+  openGame(g.id);
+}
+function openGame(id){
+  const g=gameById(id);
+  ui.gameId=id; ui.screen='game';
+  ui.marks={title:false,artist:false,lyrics:false};
+  disarmSkip();
+  if(g.rules.timerEnabled) timerInit(g.rules.timerSeconds); else timerStop();
+  render();
+}
+function completeTurn(){
+  const g=gameById(ui.gameId); if(!g) return;
+  const t={ id:uid(), gameId:g.id, roundNumber:currentRound(g),
+    guessingPlayerId:currentGuesserId(g),
+    songTitleCorrect:!!ui.marks.title, artistCorrect:!!ui.marks.artist,
+    lyricsCorrect:g.rules.lyricsEnabled?!!ui.marks.lyrics:null,
+    wasSkipped:false,
+    timeTakenSeconds:g.rules.timerEnabled?timerElapsedSecs():null,
+    timestamp:Date.now() };
+  g.turns.push(t);
+  ui.marks={title:false,artist:false,lyrics:false};
+  disarmSkip();
+  if(g.rules.timerEnabled) timerInit(g.rules.timerSeconds);
+  persist();
+  if(isRoundLimited(g)&&roundsDone(g)>=g.rules.roundLimit){ finishGame(); return; }
+  render();
+}
+function armSkip(){
+  const g=gameById(ui.gameId); if(!g) return;
+  if(skipsLeft(g,currentGuesserId(g))<=0) return;
+  if(!ui.skipArmed){
+    ui.skipArmed=true;
+    clearTimeout(ui.skipArmT);
+    ui.skipArmT=setTimeout(()=>{ui.skipArmed=false; render();},2600);
+    render(); return;
+  }
+  doSkip();
+}
+function disarmSkip(){ ui.skipArmed=false; clearTimeout(ui.skipArmT); }
+function doSkip(){
+  const g=gameById(ui.gameId); if(!g) return;
+  disarmSkip();
+  g.turns.push({ id:uid(), gameId:g.id, roundNumber:currentRound(g),
+    guessingPlayerId:currentGuesserId(g),
+    songTitleCorrect:false, artistCorrect:false,
+    lyricsCorrect:g.rules.lyricsEnabled?false:null,
+    wasSkipped:true, timeTakenSeconds:null, timestamp:Date.now() });
+  ui.marks={title:false,artist:false,lyrics:false};
+  if(g.rules.timerEnabled) timerInit(g.rules.timerSeconds);
+  persist(); render();
+}
+function finishGame(){
+  const g=gameById(ui.gameId); if(!g) return;
+  timerStop();
+  g.status='finished'; g.finishedAt=Date.now();
+  persist();
+  ui.screen='finish'; render();
+}
+function archiveGame(g){ g.status='archived_incomplete'; g.finishedAt=Date.now(); persist(); }
+function discardGame(g){ data.games=data.games.filter(x=>x.id!==g.id); persist(); }
+function playAgain(){
+  const old=gameById(ui.gameId); if(!old) return;
+  const g={ id:uid(), players:[old.players[1],old.players[0]], setLabel:old.setLabel,
+    status:'in_progress', rules:JSON.parse(JSON.stringify(old.rules)),
+    turns:[], createdAt:Date.now(), finishedAt:null };
+  const set=data.sets.find(s=>s.label.toLowerCase()===g.setLabel.toLowerCase());
+  if(set) set.lastUsed=Date.now();
+  data.games.push(g); persist();
+  openGame(g.id);
+}
+
+/* ================= shared UI pieces ================= */
+function stripes(thin){ return el('div',{class:'stripes'+(thin?' thin':''), 'aria-hidden':'true'}, el('i'), el('i')); }
+function emb(p, size, cls){
+  return el('span',{class:cls||'', style:'color:'+pColor(p)+';display:inline-flex;align-items:center'}, iconSvg(p.icon, size||20));
+}
+function screenHead(title, backTo){
+  return el('div',{class:'top'},
+    el('button',{class:'back','aria-label':'Back', onclick:()=>{ timerStop(); ui.screen=backTo||'home'; render(); }},'\u2190'),
+    el('h2',{class:'screen-title'}, title));
+}
+function toggleRow(label, sub, on, fn){
+  return el('div',{class:'rule'},
+    el('div',null, el('div',{class:'rl'},label), sub?el('div',{class:'rs'},sub):null),
+    el('button',{class:'toggle'+(on?' on':''), role:'switch','aria-checked':String(!!on),'aria-label':label,
+      onclick:fn}, el('i')));
+}
+function showModal(m){ ui.modal=m; render(); }
+function closeModal(){ ui.modal=null; render(); }
+
+/* ================= render root ================= */
+function render(){
+  const app=$('#app');
+  app.innerHTML='';
+  const screens={home:renderHome, setup:renderSetup, game:renderGame, finish:renderFinish,
+    stats:renderStats, gamedetail:renderGameDetail, settings:renderSettings};
+  (screens[ui.screen]||renderHome)(app);
+  if(ui.modal) app.appendChild(renderModal(ui.modal));
+  if(ui.screen==='game'){ const g=gameById(ui.gameId); if(g&&g.rules.timerEnabled) timerPaint(); }
+}
+function renderModal(m){
+  return el('div',{class:'overlay', onclick:(e)=>{ if(e.target.classList.contains('overlay')&&!m.locked) closeModal(); }},
+    el('div',{class:'modal', role:'dialog','aria-modal':'true'},
+      el('h3',null,m.title),
+      m.text?el('p',{class:'mtxt'},m.text):null,
+      ...(m.body||[]),
+      ...(m.actions||[]).map(a=>el('button',{class:'btn '+(a.cls||''), onclick:a.fn}, a.label))
+    ));
+}
+
+/* ================= HOME ================= */
+function h2hCard(){
+  const [pa,pb]=data.players;
+  if(!pa||!pb) return el('div',{class:'card'}, el('div',{class:'empty'},'Register two players in Settings to begin.'));
+  const h=headToHead(pa,pb);
+  const card=el('div',{class:'card'});
+  card.appendChild(el('div',{style:'display:flex;justify-content:center;margin-bottom:10px'}, cassetteSvg(120,false)));
+  card.appendChild(el('div',{class:'h2h'},
+    el('div',{class:'p'}, el('div',{class:'emb',style:'color:'+pColor(pa)},iconSvg(pa.icon)), el('div',{class:'nm'},pa.name)),
+    el('div',{class:'score'}, String(h.wa), el('span',{class:'colon'},':'), String(h.wb)),
+    el('div',{class:'p'}, el('div',{class:'emb',style:'color:'+pColor(pb)},iconSvg(pb.icon)), el('div',{class:'nm'},pb.name))
+  ));
+  card.appendChild(el('div',{class:'h2h-sub'},
+    h.total===0?'No finished games yet \u2014 the tape is blank.':
+    h.total+' game'+(h.total===1?'':'s')+' on record'+(h.d?' \u00b7 '+h.d+' draw'+(h.d===1?'':'s'):'')));
+  return card;
+}
+function renderHome(app){
+  app.appendChild(el('div',null,
+    el('div',{style:'display:flex;justify-content:space-between'},
+      el('span',{class:'eyebrow'},'side a'),
+      el('span',{class:'eyebrow'},'side b')),
+    el('h1',{class:'brand center'},'Guess the Song')));
+  app.appendChild(stripes());
+  app.appendChild(h2hCard());
+  if(data.games.length===0){
+    app.appendChild(el('div',{class:'card flat card2 empty'},
+      el('span',{class:'marker'},'Nine years of songs.'),
+      el('div',null,'Time the scorekeeping caught up.'),
+      el('div',null,'Swap phones, press play, keep receipts.')));
+  }
+  const live=activeGame();
+  app.appendChild(el('button',{class:'btn primary big', onclick:()=>{
+    if(live){ promptUnfinished(live); } else { ui.setupDraft=newSetupDraft(); ui.screen='setup'; render(); }
+  }}, live?'Start / resume game':'Start new game'));
+  app.appendChild(el('div',{class:'btn-row'},
+    el('button',{class:'btn', onclick:()=>{ui.screen='stats'; render();}},'Stats'),
+    el('button',{class:'btn', onclick:()=>{ui.screen='settings'; render();}},'Settings')));
+}
+function promptUnfinished(g){
+  const [pa,pb]=g.players.map(playerById);
+  showModal({
+    title:'A tape is still rolling',
+    text:'\u201c'+g.setLabel+'\u201d \u2014 '+pa.name+' '+scoreFor(g,pa.id)+' : '+scoreFor(g,pb.id)+' '+pb.name+
+      ' \u00b7 round '+currentRound(g)+(isRoundLimited(g)?' of '+g.rules.roundLimit:''),
+    actions:[
+      {label:'Continue that game', cls:'primary', fn:()=>{ closeModal(); openGame(g.id); }},
+      {label:'Archive it (won\u2019t count)', fn:()=>{ archiveGame(g); closeModal(); ui.setupDraft=newSetupDraft(); ui.screen='setup'; render(); }},
+      {label:'Discard it', cls:'danger', fn:()=>{ discardGame(g); closeModal(); ui.setupDraft=newSetupDraft(); ui.screen='setup'; render(); }},
+      {label:'Never mind', cls:'quiet', fn:closeModal},
+    ]});
+}
+
+/* ================= SETUP ================= */
+function renderSetup(app){
+  const d=ui.setupDraft||(ui.setupDraft=newSetupDraft());
+  const r=d.rules;
+  app.appendChild(screenHead('New game'));
+  app.appendChild(stripes(true));
+
+  // players
+  const pf=el('div',{class:'card field'});
+  pf.appendChild(el('label',null,'Players'));
+  if(data.players.length>2){
+    pf.appendChild(el('div',{class:'chips'}, data.players.map(p=>{
+      const on=d.players.includes(p.id);
+      return el('button',{class:'pchip'+(on?' on':''), style:on?'color:'+pColor(p):'',
+        onclick:()=>{ if(on){ d.players=d.players.filter(x=>x!==p.id); }
+          else if(d.players.length<2){ d.players.push(p.id); }
+          else { d.players=[d.players[0],p.id]; } render(); }},
+        el('span',{style:'color:'+pColor(p),'aria-hidden':'true'},iconSvg(p.icon,20)), p.name);
+    })));
+  } else {
+    pf.appendChild(el('div',{class:'chips'}, d.players.map(id=>{
+      const p=playerById(id);
+      return el('span',{class:'pchip on', style:'color:'+pColor(p)},
+        el('span',{'aria-hidden':'true'},iconSvg(p.icon,20)), el('span',{style:'color:var(--ink)'},p.name));
+    })));
+  }
+  if(d.players.length===2){
+    const first=playerById(d.players[0]);
+    pf.appendChild(el('div',{style:'display:flex;align-items:center;gap:10px'},
+      el('span',{class:'hint'},'First to guess: ', el('b',null,first.name)),
+      el('button',{class:'chip', onclick:()=>{ d.players.reverse(); render(); }},'\u21c4 swap')));
+  }
+  app.appendChild(pf);
+
+  // set label
+  const sf=el('div',{class:'card field'});
+  sf.appendChild(el('label',{for:'set-in'},'The song set'));
+  sf.appendChild(el('input',{class:'text marker-in', id:'set-in', placeholder:'e.g. 2025 Wrapped', value:d.setLabel,
+    oninput:(e)=>{ d.setLabel=e.target.value; }}));
+  const recent=[...data.sets].sort((a,b)=>b.lastUsed-a.lastUsed).slice(0,6);
+  if(recent.length) sf.appendChild(el('div',{class:'chips'}, recent.map(s=>
+    el('button',{class:'chip'+(d.setLabel===s.label?' on':''), onclick:()=>{ d.setLabel=s.label; render(); }}, s.label))));
+  sf.appendChild(el('div',{class:'hint'},'Whatever\u2019s playing on the other phone \u2014 a playlist, a Wrapped, chaos shuffle.'));
+  app.appendChild(sf);
+
+  // rules
+  const rf=el('div',{class:'card'});
+  rf.appendChild(el('div',{class:'eyebrow', style:'margin-bottom:4px'},'house rules'));
+  rf.appendChild(toggleRow('Lyrics point','Sing a line, earn a point', r.lyricsEnabled, ()=>{ r.lyricsEnabled=!r.lyricsEnabled; render(); }));
+  rf.appendChild(toggleRow('Skips','Free passes, no penalty', r.skipsEnabled, ()=>{ r.skipsEnabled=!r.skipsEnabled; render(); }));
+  if(r.skipsEnabled) rf.appendChild(el('div',{class:'sub-rule rule'},
+    el('div',{class:'rl'},'Skips per player'),
+    el('input',{class:'num', type:'number', min:'1', max:'20', value:r.skipCount, inputmode:'numeric',
+      oninput:(e)=>{ r.skipCount=e.target.value; }})));
+  rf.appendChild(el('div',{class:'rule'},
+    el('div',null, el('div',{class:'rl'},'Scoring'), el('div',{class:'rs'},'Count every point, or count songs cracked')),
+    null));
+  rf.appendChild(el('div',{class:'seg', style:'margin:2px 0 8px'},
+    el('button',{class:r.scoringMode==='points'?'on':'', onclick:()=>{ r.scoringMode='points'; render(); }},'Points total'),
+    el('button',{class:r.scoringMode==='songs_guessed'?'on':'', onclick:()=>{ r.scoringMode='songs_guessed'; render(); }},'Songs guessed')));
+  if(r.scoringMode==='songs_guessed'&&r.lyricsEnabled)
+    rf.appendChild(el('div',{class:'sub-rule'},
+      toggleRow('Lyric-only counts as guessed','Nailed the lyric, blanked on the rest', r.lyricOnlyCountsAsGuessed,
+        ()=>{ r.lyricOnlyCountsAsGuessed=!r.lyricOnlyCountsAsGuessed; render(); })));
+  rf.appendChild(toggleRow('Timer','With a 5\u20264\u20263\u20262\u20261 for pressure', r.timerEnabled, ()=>{ r.timerEnabled=!r.timerEnabled; render(); }));
+  if(r.timerEnabled){
+    const sec=parseInt(r.timerSeconds)||60;
+    rf.appendChild(el('div',{class:'sub-rule field'},
+      el('div',{class:'seg'},
+        TIMER_PRESETS.map(p=>el('button',{class:sec===p&&!r.customTimer?'on':'', onclick:()=>{ r.timerSeconds=p; r.customTimer=false; render(); }}, p+'s')),
+        el('button',{class:r.customTimer?'on':'', onclick:()=>{ r.customTimer=true; render(); }},'Custom')),
+      r.customTimer?el('input',{class:'num', type:'number', min:'5', max:'600', value:r.timerSeconds, inputmode:'numeric',
+        oninput:(e)=>{ r.timerSeconds=e.target.value; }}):null));
+  }
+  rf.appendChild(el('div',{class:'rule'},
+    el('div',null, el('div',{class:'rl'},'Rounds'), el('div',{class:'rs'},'A round = one song each')),
+    el('div',{style:'display:flex;align-items:center;gap:8px'},
+      d.endless?null:el('input',{class:'num', type:'number', min:'1', max:'99', value:r.roundLimit==='endless'?10:r.roundLimit, inputmode:'numeric',
+        oninput:(e)=>{ r.roundLimit=e.target.value; }}),
+      el('button',{class:'chip'+(d.endless?' on':''), onclick:()=>{ d.endless=!d.endless; render(); }},'Endless'))));
+  app.appendChild(rf);
+
+  app.appendChild(el('button',{class:'btn primary big', disabled:d.players.length!==2?'':null,
+    style:d.players.length!==2?'opacity:.5':'', onclick:()=>{ if(d.players.length===2) startGame(); }},'Press record \u25cf'));
+}
+
+/* ================= GAME ================= */
+function renderGame(app){
+  const g=gameById(ui.gameId);
+  if(!g||g.status!=='in_progress'){ ui.screen='home'; renderHome(app); return; }
+  const gid=currentGuesserId(g), guesser=playerById(gid);
+  const [pa,pb]=g.players.map(playerById);
+  const col=pColor(guesser);
+
+  app.appendChild(el('div',{class:'top'},
+    el('button',{class:'back','aria-label':'Back to home', onclick:()=>{ timerStop(); disarmSkip(); persist(); ui.screen='home'; render(); }},'\u2190'),
+    el('div',{class:'eyebrow'},'\u201c'+g.setLabel+'\u201d'),
+    el('div',{class:'spacer'}),
+    el('button',{class:'link', onclick:()=>{
+      showModal({title:'Finish this game?',
+        text:'Current score: '+pa.name+' '+scoreFor(g,pa.id)+' : '+scoreFor(g,pb.id)+' '+pb.name+'.',
+        actions:[
+          {label:'Finish \u2014 that\u2019s a wrap', cls:'primary', fn:()=>{ closeModal(); finishGame(); }},
+          {label:'Keep playing', cls:'quiet', fn:closeModal}]});
+    }},'Finish')));
+
+  const tc=el('div',{class:'turncard', style:'color:'+col});
+  tc.appendChild(cassetteSvg(96,true));
+  tc.appendChild(el('div',{class:'eyebrow', style:'margin-top:6px'},'now guessing'));
+  tc.appendChild(el('div',{class:'who'},
+    el('span',{style:'color:'+col+';display:inline-flex'}, iconSvg(guesser.icon)), guesser.name));
+  app.appendChild(tc);
+
+  app.appendChild(el('div',{class:'meta'},
+    el('div',{class:'eyebrow'},'round '+currentRound(g)+(isRoundLimited(g)?' / '+g.rules.roundLimit:' \u00b7 endless')),
+    el('div',{class:'sc'},
+      el('span',{style:'color:'+pColor(pa)},'\u25cf '), pa.name+' ', el('b',null,String(scoreFor(g,pa.id))),
+      '\u2002\u00b7\u2002',
+      el('span',{style:'color:'+pColor(pb)},'\u25cf '), pb.name+' ', el('b',null,String(scoreFor(g,pb.id))),
+      ' '+scoreUnit(g,2))));
+
+  const cols=g.rules.lyricsEnabled?'c3':'c2';
+  const gg=el('div',{class:'guess-grid '+cols});
+  const mkBtn=(key,label,icon)=>{
+    const on=ui.marks[key];
+    return el('button',{class:'gbtn'+(on?' on':''), style:'color:'+col, 'aria-pressed':String(!!on),
+      'aria-label':label, title:label,
+      onclick:()=>{ ui.marks[key]=!ui.marks[key]; disarmSkip(); render(); }},
+      el('span',{class:'mk'}, el('span',null,'\u2713')),
+      el('span',{class:'gicon'}, iconSvg(icon)));
+  };
+  gg.appendChild(mkBtn('title','Title','text_fields_alt'));
+  gg.appendChild(mkBtn('artist','Artist','person'));
+  if(g.rules.lyricsEnabled) gg.appendChild(mkBtn('lyrics','Lyrics','text_ad'));
+  app.appendChild(gg);
+
+  if(g.rules.timerEnabled){
+    app.appendChild(el('div',{class:'card timer-card', id:'timer-card'},
+      el('div',{class:'timer-top'},
+        el('div',null,
+          el('div',{class:'eyebrow'},'timer ', el('span',{class:'timeout-lbl', id:'timeout-lbl', style:'display:none'},'time out!')),
+          el('div',{class:'timer-num', id:'timer-num'},'0:00')),
+        el('div',{class:'timer-btns'},
+          el('button',{class:'tbtn', id:'timer-toggle', onclick:timerToggle},'Start'),
+          el('button',{class:'tbtn', onclick:()=>{ timerReset(); }},'Reset'))),
+      el('div',{class:'timer-bar'}, el('i',{id:'timer-bar-i'}))));
+  }
+
+  if(g.rules.skipsEnabled){
+    const left=skipsLeft(g,gid);
+    app.appendChild(el('button',{class:'skip-zone'+(ui.skipArmed?' armed':''),
+      disabled:left<=0?'':null, style:left<=0?'opacity:.5':'',
+      onclick:armSkip},
+      left<=0?'No skips left \u2014 face the music':
+      ui.skipArmed?'Tap again to skip \u2192':'Skip this song \u00b7 '+left+' left'));
+  }
+
+  app.appendChild(el('button',{class:'btn primary big', onclick:completeTurn},'Complete turn \u2192'));
+
+  if(g.turns.length){
+    const strip=el('div',{class:'hist'});
+    const recent=g.turns.slice(-14);
+    for(let i=recent.length-1;i>=0;i--){
+      const t=recent[i], p=playerById(t.guessingPlayerId);
+      let got;
+      if(t.wasSkipped) got=el('span',{class:'miss'},'skip');
+      else{
+        const parts=[];
+        parts.push(el('span',{class:t.songTitleCorrect?'got':'miss'},'T'));
+        parts.push(el('span',{class:t.artistCorrect?'got':'miss'},'A'));
+        if(g.rules.lyricsEnabled) parts.push(el('span',{class:t.lyricsCorrect?'got':'miss'},'L'));
+        got=el('span',{style:'display:flex;gap:4px'},parts);
+      }
+      strip.appendChild(el('button',{class:'hchip', style:'color:'+pColor(p),
+        onclick:()=>editTurnModal(g,t)},
+        el('span',{class:'mono', style:'color:var(--muted)'},'R'+t.roundNumber),
+        el('span',{class:'dot'}), got));
+    }
+    app.appendChild(el('div',null, el('div',{class:'eyebrow', style:'margin-bottom:5px'},'this game \u00b7 tap a turn to fix it'), strip));
+  }
+}
+function editTurnModal(g,t){
+  const isLast=g.turns[g.turns.length-1]&&g.turns[g.turns.length-1].id===t.id;
+  const p=playerById(t.guessingPlayerId);
+  const tmp={title:!!t.songTitleCorrect, artist:!!t.artistCorrect, lyrics:!!t.lyricsCorrect};
+  const body=[];
+  if(t.wasSkipped){
+    body.push(el('p',{class:'mtxt'},p.name+' skipped this one in round '+t.roundNumber+'. Nothing to edit \u2014 a skip is a skip.'));
+  } else {
+    const wrap=el('div',{class:'card flat card2', style:'padding:4px 12px'});
+    const row=(label,key)=>toggleRow(label,null,tmp[key],()=>{ tmp[key]=!tmp[key];
+      const tg=wrap.querySelectorAll('.toggle')[({title:0,artist:1,lyrics:2})[key]];
+      tg.classList.toggle('on'); tg.setAttribute('aria-checked',tg.classList.contains('on')); });
+    wrap.appendChild(row('Title','title'));
+    wrap.appendChild(row('Artist','artist'));
+    if(g.rules.lyricsEnabled) wrap.appendChild(row('Lyrics','lyrics'));
+    body.push(wrap);
+  }
+  const actions=[];
+  if(!t.wasSkipped) actions.push({label:'Save fix', cls:'primary', fn:()=>{
+    t.songTitleCorrect=tmp.title; t.artistCorrect=tmp.artist;
+    t.lyricsCorrect=g.rules.lyricsEnabled?tmp.lyrics:null;
+    persist(); closeModal();
+  }});
+  if(isLast) actions.push({label:'Delete this turn', cls:'danger', fn:()=>{
+    g.turns.pop(); persist(); closeModal();
+  }});
+  actions.push({label:'Cancel', cls:'quiet', fn:closeModal});
+  showModal({title:p.name+' \u00b7 round '+t.roundNumber, body, actions});
+}
+
+/* ================= FINISH ================= */
+function resultBanner(g){
+  const [pa,pb]=g.players.map(playerById);
+  const sa=scoreFor(g,pa.id), sb=scoreFor(g,pb.id);
+  const w=winnerOf(g);
+  const b=el('div',{class:'card banner'});
+  b.appendChild(el('div',{class:'eyebrow'},'\u201c'+g.setLabel+'\u201d \u00b7 '+fmtDate(g.finishedAt||g.createdAt)));
+  b.appendChild(el('div',{class:'wrap-lbl'},'That\u2019s a wrap!'));
+  if(w){
+    const wp=playerById(w);
+    b.appendChild(el('div',{class:'winner', style:'color:'+pColor(wp)}, iconSvg(wp.icon), el('span',{style:'color:var(--ink)'},wp.name+' takes it')));
+  } else {
+    b.appendChild(el('div',{class:'winner'},'Dead heat \u2014 a draw'));
+  }
+  b.appendChild(el('div',{class:'fscore'}, pa.name+' '+sa+' : '+sb+' '+pb.name,
+    el('span',{style:'color:var(--muted);font-size:15px;font-weight:700'},' '+scoreUnit(g,sa+sb))));
+  return b;
+}
+function statCards(g){
+  const wrap=el('div',{class:'statcards'});
+  for(const pid of g.players){
+    const p=playerById(pid), s=statsFor(g,pid), r=g.rules;
+    const c=el('div',{class:'card pcard', style:'color:'+pColor(p)});
+    c.appendChild(el('div',{class:'ph'}, iconSvg(p.icon), el('span',null,p.name)));
+    const row=(k,v)=>c.appendChild(el('div',{class:'srow'}, el('span',{class:'k'},k), el('span',{class:'v'},v)));
+    row('Points', pointsFor(g,pid)+' pts');
+    row('Songs guessed', s.guessed+' / '+s.presented+' ('+pct(s.guessed,s.presented)+')');
+    row('Title hits', s.titles+' ('+pct(s.titles,s.presented)+')');
+    row('Artist hits', s.artists+' ('+pct(s.artists,s.presented)+')');
+    if(r.lyricsEnabled) row('Lyrics landed', s.lyrics+' / '+s.presented);
+    if(r.skipsEnabled) row('Skips used', s.skips+' / '+r.skipCount);
+    row('Clutch \u26a1', String(s.clutch));
+    row('Best streak', String(s.streak));
+    wrap.appendChild(c);
+  }
+  return wrap;
+}
+function renderFinish(app){
+  const g=gameById(ui.gameId);
+  if(!g){ ui.screen='home'; renderHome(app); return; }
+  app.appendChild(stripes());
+  app.appendChild(resultBanner(g));
+  app.appendChild(statCards(g));
+  const nextFirst=playerById(g.players[1]);
+  app.appendChild(el('button',{class:'btn primary big', onclick:playAgain},'Run it back \u00b7 '+nextFirst.name+' starts'));
+  app.appendChild(el('button',{class:'btn', onclick:()=>{ ui.screen='home'; render(); }},'Home'));
+}
+
+/* ================= STATS ================= */
+function renderStats(app){
+  app.appendChild(screenHead('Stats & history'));
+  app.appendChild(stripes(true));
+  app.appendChild(h2hCard());
+  const [pa,pb]=data.players;
+  if(pa&&pb){
+    const lw=el('div',{class:'statcards'});
+    for(const p of [pa,pb]){
+      const s=lifetimeStats(p.id);
+      const c=el('div',{class:'card pcard', style:'color:'+pColor(p)});
+      c.appendChild(el('div',{class:'ph'}, iconSvg(p.icon), el('span',null,p.name)));
+      const row=(k,v)=>c.appendChild(el('div',{class:'srow'}, el('span',{class:'k'},k), el('span',{class:'v'},v)));
+      row('Games won', String(s.wins)+' / '+s.games);
+      row('Guess rate', pct(s.guessed,s.presented));
+      row('Title rate', pct(s.titles,s.presented));
+      row('Artist rate', pct(s.artists,s.presented));
+      row('Clutch \u26a1', String(s.clutch));
+      row('Best streak', String(s.best));
+      lw.appendChild(c);
+    }
+    app.appendChild(lw);
+  }
+  const games=[...data.games].sort((a,b)=>b.createdAt-a.createdAt);
+  app.appendChild(el('div',{class:'eyebrow', style:'margin-top:4px'},'game history'));
+  if(!games.length) app.appendChild(el('div',{class:'empty'}, el('span',{class:'marker'},'Blank tape.'),'Every game you finish lands here.'));
+  for(const g of games){
+    const [ga,gb]=g.players.map(playerById);
+    const badge=g.status==='in_progress'?el('span',{class:'badge live'},'live')
+      :g.status==='archived_incomplete'?el('span',{class:'badge'},'didn\u2019t count'):null;
+    app.appendChild(el('button',{class:'gitem', onclick:()=>{
+      if(g.status==='in_progress'){ openGame(g.id); }
+      else{ ui.statsGameId=g.id; ui.screen='gamedetail'; render(); }
+    }},
+      el('div',null,
+        el('div',{class:'gi-set'},g.setLabel),
+        el('div',{class:'gi-sub'},fmtDate(g.createdAt)+' \u00b7 '+ga.name+' vs '+gb.name,' ',badge)),
+      el('div',{class:'gi-score'}, pointsFor(g,ga.id)+' : '+pointsFor(g,gb.id))));
+  }
+}
+function renderGameDetail(app){
+  const g=gameById(ui.statsGameId);
+  if(!g){ ui.screen='stats'; renderStats(app); return; }
+  app.appendChild(screenHead('Game recap','stats'));
+  if(g.status==='archived_incomplete') app.appendChild(el('div',{class:'hint center'},'Archived unfinished \u2014 not counted in the lifetime score.'));
+  app.appendChild(resultBanner(g));
+  app.appendChild(statCards(g));
+}
+
+/* ================= SETTINGS ================= */
+function renderSettings(app){
+  app.appendChild(screenHead('Settings'));
+  app.appendChild(stripes(true));
+
+  const pc=el('div',{class:'card'});
+  pc.appendChild(el('div',{class:'eyebrow', style:'margin-bottom:4px'},'players'));
+  for(const p of data.players){
+    pc.appendChild(el('div',{class:'prow', style:'color:'+pColor(p)},
+      el('span',{class:'pemb'}, iconSvg(p.icon)),
+      el('span',{class:'pname', style:'color:var(--ink)'},p.name),
+      el('button',{class:'edit', onclick:()=>playerModal(p)},'Edit')));
+  }
+  if(data.players.length<6)
+    pc.appendChild(el('button',{class:'btn quiet', style:'margin-top:8px', onclick:()=>playerModal(null)},'+ Add a player'));
+  app.appendChild(pc);
+
+  const ac=el('div',{class:'card'});
+  ac.appendChild(el('div',{class:'eyebrow', style:'margin-bottom:8px'},'appearance'));
+  ac.appendChild(el('div',{class:'seg'},
+    [['system','System'],['light','Light'],['dark','Dark']].map(([v,l])=>
+      el('button',{class:data.settings.theme===v?'on':'', onclick:()=>{ data.settings.theme=v; persist(); applyTheme(); render(); }},l))));
+  ac.appendChild(toggleRow('Countdown sounds','Beeps at 5\u20264\u20263\u20262\u20261, buzz at zero', data.settings.sound,
+    ()=>{ data.settings.sound=!data.settings.sound; persist(); render(); }));
+  app.appendChild(ac);
+
+  const dc=el('div',{class:'card field'});
+  dc.appendChild(el('div',{class:'eyebrow'},'your data'));
+  dc.appendChild(el('button',{class:'btn', onclick:exportData},'Export backup (JSON)'));
+  dc.appendChild(el('button',{class:'link', style:'align-self:center', onclick:()=>{
+    const ta=el('textarea',{class:'text', style:'height:200px;font-size:11.5px', readonly:''});
+    ta.value=JSON.stringify(data);
+    showModal({title:'Backup as text', text:'Select all, copy, stash it somewhere safe.',
+      body:[ta], actions:[{label:'Done', cls:'primary', fn:closeModal}]});
+  }},'Show backup as text instead'));
+  const fileIn=el('input',{type:'file', accept:'.json,application/json', style:'display:none',
+    onchange:(e)=>{ const f=e.target.files[0]; if(!f) return;
+      const rd=new FileReader();
+      rd.onload=()=>importData(String(rd.result));
+      rd.readAsText(f); e.target.value=''; }});
+  dc.appendChild(fileIn);
+  dc.appendChild(el('button',{class:'btn', onclick:()=>fileIn.click()},'Import backup'));
+  dc.appendChild(el('button',{class:'btn danger', onclick:()=>showModal({
+    title:'Reset stats only?', text:'Wipes every game and set label. Players and settings stay.',
+    actions:[{label:'Yes, wipe the games', cls:'danger', fn:()=>{ data.games=[]; data.sets=[]; persist(); closeModal(); }},
+             {label:'Cancel', cls:'quiet', fn:closeModal}]})},'Reset stats only'));
+  dc.appendChild(el('button',{class:'btn danger', onclick:()=>showModal({
+    title:'Reset everything?', text:'This wipes the whole tape \u2014 players, games, history, all of it. Export a backup first if in doubt.',
+    actions:[{label:'Burn it all down', cls:'danger', fn:()=>{ data=seedData(); persist(); applyTheme(); closeModal(); }},
+             {label:'Cancel', cls:'quiet', fn:closeModal}]})},'Reset all data'));
+  app.appendChild(dc);
+}
+function playerModal(p){
+  const isNew=!p;
+  const tmp={ name:p?p.name:'', color:p?p.color:SWATCHES[(data.players.length)%SWATCHES.length].id, icon:p?p.icon:'star_shine' };
+  const nameIn=el('input',{class:'text', placeholder:'Name', value:tmp.name, maxlength:'18',
+    oninput:(e)=>{ tmp.name=e.target.value; }});
+  const swWrap=el('div',{class:'swatches'});
+  const igWrap=el('div',{class:'icon-grid'});
+  function paint(){
+    swWrap.innerHTML='';
+    for(const s of SWATCHES){
+      swWrap.appendChild(el('button',{class:'sw'+(tmp.color===s.id?' on':''),
+        style:'color:'+(document.documentElement.dataset.theme==='dark'?s.dark:s.light),
+        'aria-label':s.id, onclick:()=>{ tmp.color=s.id; paint(); }}));
+    }
+    igWrap.innerHTML='';
+    for(const name of EMBLEMS){
+      igWrap.appendChild(el('button',{class:'ig'+(tmp.icon===name?' on':''),
+        style:'color:'+swColor(tmp.color), 'aria-label':name,
+        onclick:()=>{ tmp.icon=name; paint(); }}, iconSvg(name)));
+    }
+  }
+  paint();
+  const referenced=p?data.games.some(g=>g.players.includes(p.id)):false;
+  const actions=[
+    {label:isNew?'Add player':'Save', cls:'primary', fn:()=>{
+      const nm=(tmp.name||'').trim(); if(!nm) return;
+      if(isNew) data.players.push({id:uid(), name:nm, color:tmp.color, icon:tmp.icon});
+      else { p.name=nm; p.color=tmp.color; p.icon=tmp.icon; }
+      persist(); closeModal();
+    }}];
+  if(p&&!referenced&&data.players.length>2)
+    actions.push({label:'Remove player', cls:'danger', fn:()=>{ data.players=data.players.filter(x=>x.id!==p.id); persist(); closeModal(); }});
+  actions.push({label:'Cancel', cls:'quiet', fn:closeModal});
+  showModal({title:isNew?'New player':'Edit '+p.name, body:[nameIn, swWrap, igWrap], actions});
+}
+
+/* ================= export / import ================= */
+function exportData(){
+  const str=JSON.stringify(data,null,2);
+  const stamp=new Date().toISOString().slice(0,10);
+  try{
+    const blob=new Blob([str],{type:'application/json'});
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='guess-the-song-backup-'+stamp+'.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },400);
+  }catch(e){
+    const ta=el('textarea',{class:'text', style:'height:180px;font-size:12px'},str);
+    showModal({title:'Copy your backup', body:[ta], actions:[{label:'Done', cls:'primary', fn:closeModal}]});
+  }
+}
+function importData(str){
+  let parsed=null;
+  try{ parsed=JSON.parse(str); }catch(e){}
+  if(!parsed||!Array.isArray(parsed.players)||!Array.isArray(parsed.games)){
+    showModal({title:'That tape won\u2019t play', text:'This file doesn\u2019t look like a Guess the Song backup. Nothing was changed.',
+      actions:[{label:'OK', cls:'primary', fn:closeModal}]});
+    return;
+  }
+  showModal({title:'Replace everything?',
+    text:'Importing overwrites the current players, games, and history with the backup ('+parsed.games.length+' games, '+parsed.players.length+' players).',
+    actions:[
+      {label:'Import & replace', cls:'primary', fn:()=>{
+        data=parsed;
+        data.settings=Object.assign({theme:'system',sound:true,lastRules:null}, data.settings||{});
+        data.sets=data.sets||[];
+        persist(); applyTheme(); closeModal();
+      }},
+      {label:'Cancel', cls:'quiet', fn:closeModal}]});
+}
+
+/* ================= boot ================= */
+(async function init(){
+  let loaded=await store.load();
+  if(!loaded){ data=seedData(); store.saveNow(); }
+  else{
+    data=loaded;
+    data.settings=Object.assign({theme:'system',sound:true,lastRules:null}, data.settings||{});
+    data.sets=data.sets||[]; data.games=data.games||[]; data.players=data.players||[];
+  }
+  applyTheme();
+  render();
+})();
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&data) store.saveNow(); });
+</script>
+</body>
+</html>
