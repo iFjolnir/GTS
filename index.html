@@ -184,11 +184,13 @@ input.num{width:74px; text-align:center; background:var(--card2); border:2px sol
 
 /* ---------- finish ---------- */
 .banner{text-align:center; padding:20px 16px}
-.banner .wrap-lbl{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-size:25px; margin:4px 0 2px}
+.banner .wrap-lbl{font-family:'Permanent Marker','Marker Felt','Segoe Print','Comic Sans MS',cursive; font-size:20px; margin:4px 0 2px}
 .banner .winner{font-weight:900; font-size:34px; letter-spacing:-.5px; line-height:1.1;
   display:flex; align-items:center; justify-content:center; gap:10px}
 .banner .winner svg{width:30px; height:30px}
 .banner .fscore{font-weight:900; font-size:26px; margin-top:8px}
+.banner .winner.draw{font-size:25px}
+.banner .funit{font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12.5px; color:var(--muted); margin-top:3px}
 .statcards{display:grid; grid-template-columns:1fr 1fr; gap:10px}
 @media (max-width:360px){.statcards{grid-template-columns:1fr}}
 .pcard{padding:13px}
@@ -368,10 +370,7 @@ function persist(){ store.saveSoon(); }
 function seedData(){
   return {
     v:1,
-    players:[
-      {id:uid(), name:'Faye', color:'cherry', icon:'raven'},
-      {id:uid(), name:'Moni', color:'cobalt', icon:'cruelty_free'},
-    ],
+    players:[],
     sets:[], games:[],
     settings:{theme:'system', sound:true, lastRules:null},
   };
@@ -475,10 +474,10 @@ function activeGame(){ return data.games.find(g=>g.status==='in_progress'); }
 function nonSkipTurns(g){ return g.turns.filter(t=>!t.wasSkipped); }
 function currentGuesserId(g){
   const n=nonSkipTurns(g).length;
-  return g.players[n%2];
+  return g.players[n%g.players.length];
 }
-function currentRound(g){ return Math.floor(nonSkipTurns(g).length/2)+1; }
-function roundsDone(g){ return Math.floor(nonSkipTurns(g).length/2); }
+function currentRound(g){ return Math.floor(nonSkipTurns(g).length/g.players.length)+1; }
+function roundsDone(g){ return Math.floor(nonSkipTurns(g).length/g.players.length); }
 function isRoundLimited(g){ return g.rules.roundLimit!=='endless'; }
 function turnPoints(t,rules){
   if(t.wasSkipped) return 0;
@@ -502,11 +501,21 @@ function scoreFor(g,pid){
   return mine.reduce((a,t)=>a+turnPoints(t,g.rules),0);
 }
 function scoreUnit(g,n){ return g.rules.scoringMode==='songs_guessed'?(n===1?'song':'songs'):(n===1?'pt':'pts'); }
-function winnerOf(g){
-  const [a,b]=g.players, sa=scoreFor(g,a), sb=scoreFor(g,b);
-  if(sa===sb) return null;
-  return sa>sb?a:b;
+function resultOf(g){
+  if(g.players.length<2) return {winner:null, tiebreak:false, solo:true};
+  const scores=g.players.map(p=>({p, s:scoreFor(g,p)}));
+  const max=Math.max(...scores.map(x=>x.s));
+  const leaders=scores.filter(x=>x.s===max).map(x=>x.p);
+  if(leaders.length===1) return {winner:leaders[0], tiebreak:false, solo:false};
+  if(g.rules.skipsEnabled){
+    const left=leaders.map(p=>({p, l:skipsLeft(g,p)}));
+    const mx=Math.max(...left.map(x=>x.l));
+    const top=left.filter(x=>x.l===mx);
+    if(top.length===1) return {winner:top[0].p, tiebreak:true, solo:false};
+  }
+  return {winner:null, tiebreak:false, solo:false};
 }
+function winnerOf(g){ return resultOf(g).winner; }
 function skipsUsed(g,pid){ return g.turns.filter(t=>t.wasSkipped&&t.guessingPlayerId===pid).length; }
 function skipsLeft(g,pid){ return Math.max(0,(g.rules.skipCount||0)-skipsUsed(g,pid)); }
 
@@ -521,16 +530,16 @@ function statsFor(g,pid){
   const lyrics=rules.lyricsEnabled?ns.filter(t=>!!t.lyricsCorrect).length:null;
   const skips=mine.filter(t=>t.wasSkipped).length;
   // clutch: correct guesses in final round / with skips exhausted / under time pressure
-  let clutch=0, skipsSoFar=0;
-  const finalRound=isRoundLimited(g)?g.rules.roundLimit:null;
+  const clutchApplicable=!!(rules.skipsEnabled||rules.timerEnabled);
+  let clutchN=0, skipsSoFar=0;
   for(const t of mine){
     if(t.wasSkipped){ skipsSoFar++; continue; }
     if(!turnGuessedAny(t,rules)) continue;
-    const lastRound=finalRound!=null&&t.roundNumber===finalRound;
     const noSkips=rules.skipsEnabled&&skipsSoFar>=(rules.skipCount||0);
     const pressure=rules.timerEnabled&&t.timeTakenSeconds!=null&&t.timeTakenSeconds>=Math.max(1,rules.timerSeconds-10);
-    if(lastRound||noSkips||pressure) clutch++;
+    if(noSkips||pressure) clutchN++;
   }
+  const clutch=clutchApplicable?clutchN:null;
   let streak=0,best=0;
   for(const t of ns){ if(turnGuessedAny(t,rules)){streak++; best=Math.max(best,streak);} else streak=0; }
   return {presented,guessed,titles,artists,lyrics,skips,clutch,streak:best};
@@ -541,7 +550,7 @@ function finishedGames(){ return data.games.filter(g=>g.status==='finished'); }
 function headToHead(pa,pb){
   let wa=0,wb=0,d=0;
   for(const g of finishedGames()){
-    if(!(g.players.includes(pa.id)&&g.players.includes(pb.id))) continue;
+    if(g.players.length!==2||!(g.players.includes(pa.id)&&g.players.includes(pb.id))) continue;
     const w=winnerOf(g);
     if(w===pa.id) wa++; else if(w===pb.id) wb++; else d++;
   }
@@ -549,14 +558,15 @@ function headToHead(pa,pb){
 }
 function lifetimeStats(pid){
   const gs=finishedGames().filter(g=>g.players.includes(pid));
-  let presented=0,guessed=0,titles=0,artists=0,clutch=0,best=0,wins=0;
+  let presented=0,guessed=0,titles=0,artists=0,clutchN=0,anyClutch=false,best=0,wins=0;
   for(const g of gs){
     const s=statsFor(g,pid);
     presented+=s.presented; guessed+=s.guessed; titles+=s.titles; artists+=s.artists;
-    clutch+=s.clutch; best=Math.max(best,s.streak);
+    if(s.clutch!=null){ anyClutch=true; clutchN+=s.clutch; }
+    best=Math.max(best,s.streak);
     if(winnerOf(g)===pid) wins++;
   }
-  return {games:gs.length,wins,presented,guessed,titles,artists,clutch,best};
+  return {games:gs.length,wins,presented,guessed,titles,artists,clutch:anyClutch?clutchN:null,best};
 }
 
 /* ================= game actions ================= */
@@ -572,7 +582,7 @@ function defaultRules(){
 }
 function newSetupDraft(){
   const d=defaultRules();
-  return { players:[data.players[0]?.id, data.players[1]?.id].filter(Boolean),
+  return { players:data.players.slice(0,2).map(p=>p.id),
            setLabel:'', rules:d, endless:d.roundLimit==='endless' };
 }
 function startGame(){
@@ -586,7 +596,7 @@ function startGame(){
   if(set) set.lastUsed=Date.now();
   else data.sets.push({id:uid(), label, lastUsed:Date.now()});
   data.settings.lastRules=JSON.parse(JSON.stringify(rules));
-  const g={ id:uid(), players:[d.players[0],d.players[1]], setLabel:label,
+  const g={ id:uid(), players:[...d.players], setLabel:label,
     status:'in_progress', rules, turns:[], createdAt:Date.now(), finishedAt:null };
   data.games.push(g);
   persist();
@@ -614,8 +624,22 @@ function completeTurn(){
   disarmSkip();
   if(g.rules.timerEnabled) timerInit(g.rules.timerSeconds);
   persist();
-  if(isRoundLimited(g)&&roundsDone(g)>=g.rules.roundLimit){ finishGame(); return; }
+  if(isRoundLimited(g)&&roundsDone(g)>=g.rules.roundLimit){ endOfSideModal(g); return; }
   render();
+}
+function endOfSideModal(g){
+  const standings=g.players.map(id=>{const p=playerById(id);return p.name+' '+scoreFor(g,id);}).join(' \u00b7 ');
+  const addRounds=n=>()=>{ g.rules.roundLimit=Number(g.rules.roundLimit)+n; persist(); closeModal(); };
+  showModal({ locked:true,
+    title:'End of the side',
+    text:'Round '+g.rules.roundLimit+' is done \u2014 '+standings+'. Wrap it, or flip the tape and keep going?',
+    actions:[
+      {label:'Finish \u2014 that\u2019s a wrap', cls:'primary', fn:()=>{ closeModal(); finishGame(); }},
+      {label:'+1 round', fn:addRounds(1)},
+      {label:'+3 rounds', fn:addRounds(3)},
+      {label:'Go endless', fn:()=>{ g.rules.roundLimit='endless'; persist(); closeModal(); }},
+      {label:'Hold on \u2014 let me check something', cls:'quiet', fn:closeModal},
+    ]});
 }
 function armSkip(){
   const g=gameById(ui.gameId); if(!g) return;
@@ -652,7 +676,7 @@ function archiveGame(g){ g.status='archived_incomplete'; g.finishedAt=Date.now()
 function discardGame(g){ data.games=data.games.filter(x=>x.id!==g.id); persist(); }
 function playAgain(){
   const old=gameById(ui.gameId); if(!old) return;
-  const g={ id:uid(), players:[old.players[1],old.players[0]], setLabel:old.setLabel,
+  const g={ id:uid(), players:[...old.players.slice(1), old.players[0]], setLabel:old.setLabel,
     status:'in_progress', rules:JSON.parse(JSON.stringify(old.rules)),
     turns:[], createdAt:Date.now(), finishedAt:null };
   const set=data.sets.find(s=>s.label.toLowerCase()===g.setLabel.toLowerCase());
@@ -703,7 +727,7 @@ function renderModal(m){
 /* ================= HOME ================= */
 function h2hCard(){
   const [pa,pb]=data.players;
-  if(!pa||!pb) return el('div',{class:'card'}, el('div',{class:'empty'},'Register two players in Settings to begin.'));
+  if(!pa||!pb) return el('div',{class:'card'}, el('div',{class:'empty'},'Add two players to start the lifetime score.'));
   const h=headToHead(pa,pb);
   const card=el('div',{class:'card'});
   card.appendChild(el('div',{style:'display:flex;justify-content:center;margin-bottom:10px'}, cassetteSvg(120,false)));
@@ -724,26 +748,35 @@ function renderHome(app){
       el('span',{class:'eyebrow'},'side b')),
     el('h1',{class:'brand center'},'Guess the Song')));
   app.appendChild(stripes());
-  app.appendChild(h2hCard());
-  if(data.games.length===0){
+  if(data.players.length>=2) app.appendChild(h2hCard());
+  if(data.players.length===0){
     app.appendChild(el('div',{class:'card flat card2 empty'},
-      el('span',{class:'marker'},'Nine years of songs.'),
+      el('span',{class:'marker'},'A blank tape.'),
+      el('div',null,'First things first: who\u2019s playing?'),
+      el('div',null,'Add the players, then press record.')));
+    app.appendChild(el('button',{class:'btn primary big', onclick:()=>playerModal(null)},'Add the first player'));
+  } else if(data.games.length===0){
+    app.appendChild(el('div',{class:'card flat card2 empty'},
+      el('span',{class:'marker'},'Fresh tape, no receipts.'),
       el('div',null,'Time the scorekeeping caught up.'),
       el('div',null,'Swap phones, press play, keep receipts.')));
   }
+  if(data.players.length===1)
+    app.appendChild(el('div',{class:'hint center'},'One more player unlocks the lifetime head-to-head \u2014 or go solo.'));
   const live=activeGame();
-  app.appendChild(el('button',{class:'btn primary big', onclick:()=>{
-    if(live){ promptUnfinished(live); } else { ui.setupDraft=newSetupDraft(); ui.screen='setup'; render(); }
-  }}, live?'Start / resume game':'Start new game'));
+  if(data.players.length>=1)
+    app.appendChild(el('button',{class:'btn primary big', onclick:()=>{
+      if(live){ promptUnfinished(live); } else { ui.setupDraft=newSetupDraft(); ui.screen='setup'; render(); }
+    }}, live?'Start / resume game':'Start new game'));
   app.appendChild(el('div',{class:'btn-row'},
     el('button',{class:'btn', onclick:()=>{ui.screen='stats'; render();}},'Stats'),
     el('button',{class:'btn', onclick:()=>{ui.screen='settings'; render();}},'Settings')));
 }
 function promptUnfinished(g){
-  const [pa,pb]=g.players.map(playerById);
+  const standings=g.players.map(id=>{const p=playerById(id);return p.name+' '+scoreFor(g,id);}).join(' \u00b7 ');
   showModal({
     title:'A tape is still rolling',
-    text:'\u201c'+g.setLabel+'\u201d \u2014 '+pa.name+' '+scoreFor(g,pa.id)+' : '+scoreFor(g,pb.id)+' '+pb.name+
+    text:g.setLabel+' \u2014 '+standings+
       ' \u00b7 round '+currentRound(g)+(isRoundLimited(g)?' of '+g.rules.roundLimit:''),
     actions:[
       {label:'Continue that game', cls:'primary', fn:()=>{ closeModal(); openGame(g.id); }},
@@ -763,27 +796,27 @@ function renderSetup(app){
   // players
   const pf=el('div',{class:'card field'});
   pf.appendChild(el('label',null,'Players'));
-  if(data.players.length>2){
-    pf.appendChild(el('div',{class:'chips'}, data.players.map(p=>{
-      const on=d.players.includes(p.id);
-      return el('button',{class:'pchip'+(on?' on':''), style:on?'color:'+pColor(p):'',
-        onclick:()=>{ if(on){ d.players=d.players.filter(x=>x!==p.id); }
-          else if(d.players.length<2){ d.players.push(p.id); }
-          else { d.players=[d.players[0],p.id]; } render(); }},
-        el('span',{style:'color:'+pColor(p),'aria-hidden':'true'},iconSvg(p.icon,20)), p.name);
-    })));
-  } else {
-    pf.appendChild(el('div',{class:'chips'}, d.players.map(id=>{
-      const p=playerById(id);
-      return el('span',{class:'pchip on', style:'color:'+pColor(p)},
-        el('span',{'aria-hidden':'true'},iconSvg(p.icon,20)), el('span',{style:'color:var(--ink)'},p.name));
-    })));
-  }
-  if(d.players.length===2){
+  pf.appendChild(el('div',{class:'chips'}, data.players.map(p=>{
+    const idx=d.players.indexOf(p.id), on=idx>=0;
+    return el('button',{class:'pchip'+(on?' on':''), style:on?'color:'+pColor(p):'',
+      'aria-pressed':String(on),
+      onclick:()=>{ if(on) d.players=d.players.filter(x=>x!==p.id);
+        else d.players.push(p.id); render(); }},
+      on&&d.players.length>1?el('span',{class:'mono', style:'color:var(--muted);font-size:12px'},String(idx+1)):null,
+      el('span',{style:'color:'+pColor(p),'aria-hidden':'true'},iconSvg(p.icon,20)),
+      el('span',{style:'color:var(--ink)'},p.name));
+  })));
+  if(d.players.length===0){
+    pf.appendChild(el('div',{class:'hint'},'Tap who\u2019s playing \u2014 one for a solo run, two for the classic, more for a party.'));
+  } else if(d.players.length===1){
+    pf.appendChild(el('div',{class:'hint'},'\u26a0 Solo run \u2014 saves to history, but not the lifetime head-to-head.'));
+  } else if(d.players.length===2){
     const first=playerById(d.players[0]);
     pf.appendChild(el('div',{style:'display:flex;align-items:center;gap:10px'},
       el('span',{class:'hint'},'First to guess: ', el('b',null,first.name)),
       el('button',{class:'chip', onclick:()=>{ d.players.reverse(); render(); }},'\u21c4 swap')));
+  } else {
+    pf.appendChild(el('div',{class:'hint'},'Turn order: '+d.players.map(id=>playerById(id).name).join(' \u2192 ')));
   }
   app.appendChild(pf);
 
@@ -835,8 +868,8 @@ function renderSetup(app){
       el('button',{class:'chip'+(d.endless?' on':''), onclick:()=>{ d.endless=!d.endless; render(); }},'Endless'))));
   app.appendChild(rf);
 
-  app.appendChild(el('button',{class:'btn primary big', disabled:d.players.length!==2?'':null,
-    style:d.players.length!==2?'opacity:.5':'', onclick:()=>{ if(d.players.length===2) startGame(); }},'Press record \u25cf'));
+  app.appendChild(el('button',{class:'btn primary big', disabled:d.players.length<1?'':null,
+    style:d.players.length<1?'opacity:.5':'', onclick:()=>{ if(d.players.length>=1) startGame(); }},'Press record \u25cf'));
 }
 
 /* ================= GAME ================= */
@@ -844,16 +877,16 @@ function renderGame(app){
   const g=gameById(ui.gameId);
   if(!g||g.status!=='in_progress'){ ui.screen='home'; renderHome(app); return; }
   const gid=currentGuesserId(g), guesser=playerById(gid);
-  const [pa,pb]=g.players.map(playerById);
+  const plist=g.players.map(playerById);
   const col=pColor(guesser);
 
   app.appendChild(el('div',{class:'top'},
     el('button',{class:'back','aria-label':'Back to home', onclick:()=>{ timerStop(); disarmSkip(); persist(); ui.screen='home'; render(); }},'\u2190'),
-    el('div',{class:'eyebrow'},'\u201c'+g.setLabel+'\u201d'),
+    el('div',{class:'eyebrow'},g.setLabel),
     el('div',{class:'spacer'}),
     el('button',{class:'link', onclick:()=>{
       showModal({title:'Finish this game?',
-        text:'Current score: '+pa.name+' '+scoreFor(g,pa.id)+' : '+scoreFor(g,pb.id)+' '+pb.name+'.',
+        text:'Current score: '+plist.map(p=>p.name+' '+scoreFor(g,p.id)).join(' \u00b7 ')+'.',
         actions:[
           {label:'Finish \u2014 that\u2019s a wrap', cls:'primary', fn:()=>{ closeModal(); finishGame(); }},
           {label:'Keep playing', cls:'quiet', fn:closeModal}]});
@@ -869,9 +902,9 @@ function renderGame(app){
   app.appendChild(el('div',{class:'meta'},
     el('div',{class:'eyebrow'},'round '+currentRound(g)+(isRoundLimited(g)?' / '+g.rules.roundLimit:' \u00b7 endless')),
     el('div',{class:'sc'},
-      el('span',{style:'color:'+pColor(pa)},'\u25cf '), pa.name+' ', el('b',null,String(scoreFor(g,pa.id))),
-      '\u2002\u00b7\u2002',
-      el('span',{style:'color:'+pColor(pb)},'\u25cf '), pb.name+' ', el('b',null,String(scoreFor(g,pb.id))),
+      plist.flatMap((p,i)=>[
+        i>0?'\u2002\u00b7\u2002':null,
+        el('span',{style:'color:'+pColor(p)},'\u25cf '), p.name+' ', el('b',null,String(scoreFor(g,p.id)))]),
       ' '+scoreUnit(g,2))));
 
   const cols=g.rules.lyricsEnabled?'c3':'c2';
@@ -966,24 +999,30 @@ function editTurnModal(g,t){
 
 /* ================= FINISH ================= */
 function resultBanner(g){
-  const [pa,pb]=g.players.map(playerById);
-  const sa=scoreFor(g,pa.id), sb=scoreFor(g,pb.id);
-  const w=winnerOf(g);
+  const plist=g.players.map(playerById);
+  const res=resultOf(g);
   const b=el('div',{class:'card banner'});
-  b.appendChild(el('div',{class:'eyebrow'},'\u201c'+g.setLabel+'\u201d \u00b7 '+fmtDate(g.finishedAt||g.createdAt)));
-  b.appendChild(el('div',{class:'wrap-lbl'},'That\u2019s a wrap!'));
-  if(w){
-    const wp=playerById(w);
-    b.appendChild(el('div',{class:'winner', style:'color:'+pColor(wp)}, iconSvg(wp.icon), el('span',{style:'color:var(--ink)'},wp.name+' takes it')));
-  } else {
-    b.appendChild(el('div',{class:'winner'},'Dead heat \u2014 a draw'));
+  b.appendChild(el('div',{class:'eyebrow'},g.setLabel+' \u00b7 '+fmtDate(g.finishedAt||g.createdAt)));
+  b.appendChild(el('div',{class:'wrap-lbl'},res.solo?'Solo run \u2014 in the books.':'That\u2019s a wrap!'));
+  if(res.winner){
+    const wp=playerById(res.winner);
+    b.appendChild(el('div',{class:'winner', style:'color:'+pColor(wp)}, iconSvg(wp.icon),
+      el('span',{style:'color:var(--ink)'},wp.name+' takes it'+(res.tiebreak?'*':''))));
+  } else if(!res.solo){
+    b.appendChild(el('div',{class:'winner draw'},'Dead heat \u2014 a draw'));
   }
-  b.appendChild(el('div',{class:'fscore'}, pa.name+' '+sa+' : '+sb+' '+pb.name,
-    el('span',{style:'color:var(--muted);font-size:15px;font-weight:700'},' '+scoreUnit(g,sa+sb))));
+  const parts=plist.map(p=>{
+    const star=res.tiebreak&&res.winner===p.id?'*':'';
+    return plist.length===1?String(scoreFor(g,p.id)):p.name+' '+scoreFor(g,p.id)+star;
+  });
+  const total=plist.reduce((a,p)=>a+scoreFor(g,p.id),0);
+  b.appendChild(el('div',{class:'fscore'}, parts.join(plist.length===2?' : ':' \u00b7 ')));
+  b.appendChild(el('div',{class:'funit'}, scoreUnit(g,total)));
+  if(res.tiebreak) b.appendChild(el('div',{class:'funit'},'* took the tie on skips left'));
   return b;
 }
 function statCards(g){
-  const wrap=el('div',{class:'statcards'});
+  const wrap=el('div',{class:'statcards', style:g.players.length===1?'grid-template-columns:1fr':''});
   for(const pid of g.players){
     const p=playerById(pid), s=statsFor(g,pid), r=g.rules;
     const c=el('div',{class:'card pcard', style:'color:'+pColor(p)});
@@ -995,7 +1034,7 @@ function statCards(g){
     row('Artist hits', s.artists+' ('+pct(s.artists,s.presented)+')');
     if(r.lyricsEnabled) row('Lyrics landed', s.lyrics+' / '+s.presented);
     if(r.skipsEnabled) row('Skips used', s.skips+' / '+r.skipCount);
-    row('Clutch \u26a1', String(s.clutch));
+    row('Clutch \u26a1', s.clutch==null?'\u2014':String(s.clutch));
     row('Best streak', String(s.streak));
     wrap.appendChild(c);
   }
@@ -1007,8 +1046,9 @@ function renderFinish(app){
   app.appendChild(stripes());
   app.appendChild(resultBanner(g));
   app.appendChild(statCards(g));
-  const nextFirst=playerById(g.players[1]);
-  app.appendChild(el('button',{class:'btn primary big', onclick:playAgain},'Run it back \u00b7 '+nextFirst.name+' starts'));
+  const nextFirst=playerById(g.players[1]||g.players[0]);
+  app.appendChild(el('button',{class:'btn primary big', onclick:playAgain},
+    g.players.length>1?'Run it back \u00b7 '+nextFirst.name+' starts':'Run it back'));
   app.appendChild(el('button',{class:'btn', onclick:()=>{ ui.screen='home'; render(); }},'Home'));
 }
 
@@ -1029,7 +1069,7 @@ function renderStats(app){
       row('Guess rate', pct(s.guessed,s.presented));
       row('Title rate', pct(s.titles,s.presented));
       row('Artist rate', pct(s.artists,s.presented));
-      row('Clutch \u26a1', String(s.clutch));
+      row('Clutch \u26a1', s.clutch==null?'\u2014':String(s.clutch));
       row('Best streak', String(s.best));
       lw.appendChild(c);
     }
@@ -1039,7 +1079,8 @@ function renderStats(app){
   app.appendChild(el('div',{class:'eyebrow', style:'margin-top:4px'},'game history'));
   if(!games.length) app.appendChild(el('div',{class:'empty'}, el('span',{class:'marker'},'Blank tape.'),'Every game you finish lands here.'));
   for(const g of games){
-    const [ga,gb]=g.players.map(playerById);
+    const plist=g.players.map(playerById);
+    const who=plist.length===1?plist[0].name+' \u00b7 solo':plist.map(p=>p.name).join(' vs ');
     const badge=g.status==='in_progress'?el('span',{class:'badge live'},'live')
       :g.status==='archived_incomplete'?el('span',{class:'badge'},'didn\u2019t count'):null;
     app.appendChild(el('button',{class:'gitem', onclick:()=>{
@@ -1048,8 +1089,8 @@ function renderStats(app){
     }},
       el('div',null,
         el('div',{class:'gi-set'},g.setLabel),
-        el('div',{class:'gi-sub'},fmtDate(g.createdAt)+' \u00b7 '+ga.name+' vs '+gb.name,' ',badge)),
-      el('div',{class:'gi-score'}, pointsFor(g,ga.id)+' : '+pointsFor(g,gb.id))));
+        el('div',{class:'gi-sub'},fmtDate(g.createdAt)+' \u00b7 '+who,' ',badge)),
+      el('div',{class:'gi-score'}, plist.map(p=>pointsFor(g,p.id)).join(' : '))));
   }
 }
 function renderGameDetail(app){
